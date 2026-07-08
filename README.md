@@ -26,12 +26,34 @@ Widget-Token in accountdesk erstellen (Einstellungen → API-Tokens → Typ
 <accountdesk-widget token="euer-widget-token"></accountdesk-widget>
 ```
 
+## Installation über npm / CDN
+
+Das Widget ist als [`@accountdesk/widget`](https://www.npmjs.com/package/@accountdesk/widget)
+auf npm veröffentlicht.
+
+**Als Script von einem npm-CDN** (versioniert, ohne eigenen Build):
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@accountdesk/widget@1/dist/accountdesk-widget.js" defer></script>
+```
+
+**In eigener Build-Pipeline** (registriert das Custom Element als Side-Effect):
+
+```bash
+npm install @accountdesk/widget
+```
+
+```js
+import "@accountdesk/widget"
+```
+
 ## Selbst hosten — ausdrücklich erlaubt und empfohlen
 
 Ihr müsst das Script nicht von `my.accountdesk.de` laden. Baut es selbst (siehe
-unten) oder kopiert die ausgelieferte Datei und legt sie zu euren eigenen
-Assets. Vorteile: keine Third-Party-Anfrage beim Seitenaufruf, volle Kontrolle
-über Caching und Versionierung, CSP ohne Fremd-Host.
+unten), installiert es über npm oder kopiert die ausgelieferte Datei und legt
+sie zu euren eigenen Assets. Vorteile: keine Third-Party-Anfrage beim
+Seitenaufruf, volle Kontrolle über Caching und Versionierung, CSP ohne
+Fremd-Host.
 
 Genauso ausdrücklich erlaubt: **den Code beliebig an eure Bedürfnisse
 anpassen** — eigenes Design-System, zusätzliche Felder, andere Validierung
