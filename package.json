@@ -1,18 +1,23 @@
 {
-  "name": "accountdesk-widget",
+  "name": "@accountdesk/widget",
   "version": "1.0.0",
-  "private": true,
+  "description": "Support-Widget von accountdesk: Kontaktformular als dependency-freie Web Component (Shadow DOM) — Tickets, Anhänge, Bildschirmfoto-Aufnahme, Wiki-Artikelvorschläge.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/accountdesk/widget.git"
   },
+  "homepage": "https://github.com/accountdesk/widget#readme",
+  "keywords": ["accountdesk", "support", "widget", "kontaktformular", "web-component", "helpdesk", "ticket"],
   "type": "module",
+  "main": "dist/accountdesk-widget.js",
+  "files": ["dist", "src"],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "build:nuxt": "node scripts/build-nuxt.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
