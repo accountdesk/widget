@@ -1,31 +1,15 @@
 import { defineConfig, type Plugin } from 'vite'
 import { resolve } from 'path'
 
-// Minifies CSS (pre-build) and HTML template literals (post-build).
+// Minifies HTML template literals (post-build). CSS wird nicht mehr hier
+// behandelt — es liegt in src/widget.css und wird via `?inline` durch Vites
+// CSS-Pipeline (inkl. Minification in prod) als String eingebettet.
 function minifyTemplates(): Plugin {
   return {
     name: 'minify-templates',
     apply: 'build',
 
-    // Pre-build: minify the CSS block (marked with /* css */)
-    transform(code, id) {
-      if (!id.endsWith('.ts')) return
-      code = code.replace(
-        /\/\* css \*\/\s*`([\s\S]*?)`/g,
-        (_match, css: string) => {
-          const minified = css
-            .replace(/\/\*[\s\S]*?\*\//g, '')
-            .replace(/\s*\n\s*/g, '')
-            .replace(/\s*([{}:;,>~+])\s*/g, '$1')
-            .replace(/;}/g, '}')
-            .trim()
-          return '`' + minified + '`'
-        },
-      )
-      return { code, map: null }
-    },
-
-    // Post-build: after esbuild has minified JS, only template literal
+    // Post-build: after the JS has been minified, only template literal
     // contents still have newlines. Collapse those here.
     generateBundle(_options, bundle) {
       for (const chunk of Object.values(bundle)) {
