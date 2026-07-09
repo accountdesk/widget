@@ -81,6 +81,15 @@ const STRINGS: Record<string, I18nStrings> = {
   },
 }
 
+// Sprache aufloesen: leeres/fehlendes Attribut => Browsersprache
+// (navigator.language, z.B. "de-DE" -> "de"). Ein explizit gesetzter, aber
+// nicht unterstuetzter Wert faellt ebenso auf Deutsch zurueck.
+function resolveLanguage(attr: string): string {
+  const pick = (raw: string) => raw.trim().slice(0, 2).toLowerCase()
+  const wanted = attr ? pick(attr) : pick(navigator.language || '')
+  return wanted in STRINGS ? wanted : 'de'
+}
+
 // ============================================
 // ICONS
 // ============================================
@@ -455,7 +464,7 @@ export class AccountdeskWidget extends HTMLElement {
     return {
       token: a('token', ''),
       apiUrl: a('api-url', 'https://my.accountdesk.de/api'),
-      language: a('language', 'de') as 'de' | 'en',
+      language: resolveLanguage(a('language', '')),
       primaryColor: primary,
       primaryColorHover: a('primary-color-hover', primary),
       position: a('position', 'bottom-right') as 'bottom-right' | 'bottom-left',

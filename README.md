@@ -12,7 +12,7 @@ automatisch ein Ticket — inklusive Anhängen und optionalem Bildschirmfoto.
   „Bildschirmfoto aufnehmen"-Knopf über die Screen-Capture-API des Browsers
 - **Artikel-Vorschläge**: schlägt beim Tippen passende Artikel aus dem
   öffentlichen Wiki des Workspace vor
-- **Anpassbar**: Farben, Texte, Position, Sprache (de/en), Vorbefüllung,
+- **Anpassbar**: Farben, Texte, Position, Sprache (de/en, auto), Vorbefüllung,
   Custom Fields
 
 ## Schnellstart
@@ -74,7 +74,7 @@ Domain-Whitelist des Tokens gilt unverändert.
 | `primary-color` | `#1976D2` | Akzentfarbe |
 | `primary-color-hover` | wie primary | Hover-Farbe |
 | `button-text` / `title` | „Support" / „Kontaktieren Sie uns" | Beschriftungen |
-| `language` | `de` | `de` oder `en` |
+| `language` | _(leer = automatisch)_ | `de` oder `en`. Ohne Angabe wird die Browsersprache (`navigator.language`) genutzt, mit Fallback auf Deutsch |
 | `show-subject` | `true` | Betreff-Feld anzeigen |
 | `show-attachments` | `true` | Datei-Upload anzeigen |
 | `screenshot` | `false` | „Bildschirmfoto aufnehmen"-Knopf (nur auf Browsern mit Screen-Capture-API; auf Mobilgeräten automatisch ausgeblendet) |

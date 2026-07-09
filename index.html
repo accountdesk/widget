@@ -98,7 +98,8 @@
       <div class="config-field">
         <label for="cfg-language">Sprache</label>
         <select id="cfg-language">
-          <option value="de" selected>Deutsch</option>
+          <option value="" selected>Automatisch (Browser)</option>
+          <option value="de">Deutsch</option>
           <option value="en">English</option>
         </select>
       </div>
@@ -192,7 +193,11 @@
     function updateWidget() {
       widget.setAttribute('token', fields.token.value)
       widget.setAttribute('api-url', fields.apiUrl.value)
-      widget.setAttribute('language', fields.language.value)
+      if (fields.language.value) {
+        widget.setAttribute('language', fields.language.value)
+      } else {
+        widget.removeAttribute('language')
+      }
       widget.setAttribute('primary-color', fields.color.value)
       widget.setAttribute('position', fields.position.value)
       widget.setAttribute('show-subject', fields.subject.value)
@@ -216,7 +221,7 @@
       if (fields.apiUrl.value && fields.apiUrl.value !== 'https://api.accountdesk.de') {
         attrs.push(`  api-url="${fields.apiUrl.value}"`)
       }
-      if (fields.language.value !== 'de') attrs.push(`  language="${fields.language.value}"`)
+      if (fields.language.value) attrs.push(`  language="${fields.language.value}"`)
       if (fields.color.value !== '#1976D2') attrs.push(`  primary-color="${fields.color.value}"`)
       if (fields.position.value !== 'bottom-right') attrs.push(`  position="${fields.position.value}"`)
       if (fields.subject.value === 'false') attrs.push(`  show-subject="false"`)

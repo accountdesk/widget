@@ -1,7 +1,7 @@
 export interface WidgetConfig {
   token: string
   apiUrl: string
-  language: 'de' | 'en'
+  language: string
   primaryColor: string
   primaryColorHover: string
   position: 'bottom-right' | 'bottom-left'
