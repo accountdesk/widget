@@ -1,4 +1,14 @@
-import type { WidgetConfig, WidgetState, WidgetFile, I18nStrings, SubmitPayload, WidgetView, ApiResponse, SuggestResult, SuggestResponse } from './types'
+import type {
+  WidgetConfig,
+  WidgetState,
+  WidgetFile,
+  I18nStrings,
+  SubmitPayload,
+  WidgetView,
+  ApiResponse,
+  SuggestResult,
+  SuggestResponse,
+} from './types'
 import CSS from './widget.css?inline'
 
 // ============================================
@@ -110,7 +120,11 @@ const ICON_SCREENSHOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2
 // ============================================
 
 function esc(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 // M8f: URL-Scheme-Whitelist. Das Widget laeuft im Origin der einbettenden
@@ -171,7 +185,13 @@ function readFile(file: File): Promise<WidgetFile> {
     reader.onload = () => {
       const result = reader.result as string
       const base64 = result.includes(',') ? result.split(',')[1] : result
-      resolve({ id: `f-${++fileCounter}`, name: file.name, size: file.size, type: file.type || 'application/octet-stream', data: base64 })
+      resolve({
+        id: `f-${++fileCounter}`,
+        name: file.name,
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        data: base64,
+      })
     }
     reader.onerror = () => reject(new Error('File read failed'))
     reader.readAsDataURL(file)
@@ -185,9 +205,18 @@ function readFile(file: File): Promise<WidgetFile> {
 export class AccountdeskWidget extends HTMLElement {
   private root: ShadowRoot
   private state: WidgetState = {
-    view: 'button', email: '', name: '', subject: '', message: '',
-    files: [], errors: {}, ticketId: null, errorMessage: '',
-    suggestResults: [], suggestRequestId: 0, suggestDebounceTimer: null,
+    view: 'button',
+    email: '',
+    name: '',
+    subject: '',
+    message: '',
+    files: [],
+    errors: {},
+    ticketId: null,
+    errorMessage: '',
+    suggestResults: [],
+    suggestRequestId: 0,
+    suggestDebounceTimer: null,
   }
   private config!: WidgetConfig
   private strings: I18nStrings = STRINGS.de
@@ -199,12 +228,32 @@ export class AccountdeskWidget extends HTMLElement {
 
   static get observedAttributes() {
     return [
-      'token', 'api-url', 'language', 'primary-color', 'primary-color-hover',
-      'position', 'mode', 'button-text', 'title', 'show-subject',
-      'show-attachments', 'show-header', 'max-file-size', 'max-files',
-      'allowed-file-types', 'z-index', 'offset-x', 'offset-y',
-      'suggest-articles', 'screenshot', 'prefill-email', 'prefill-name',
-      'external-customer-nr', 'show-email', 'show-name', 'custom-fields',
+      'token',
+      'api-url',
+      'language',
+      'primary-color',
+      'primary-color-hover',
+      'position',
+      'mode',
+      'button-text',
+      'title',
+      'show-subject',
+      'show-attachments',
+      'show-header',
+      'max-file-size',
+      'max-files',
+      'allowed-file-types',
+      'z-index',
+      'offset-x',
+      'offset-y',
+      'suggest-articles',
+      'screenshot',
+      'prefill-email',
+      'prefill-name',
+      'external-customer-nr',
+      'show-email',
+      'show-name',
+      'custom-fields',
     ]
   }
 
@@ -264,7 +313,9 @@ export class AccountdeskWidget extends HTMLElement {
       maxFileSize: parseInt(a('max-file-size', '10'), 10),
       maxFiles: parseInt(a('max-files', '5'), 10),
       allowedFileTypes: a('allowed-file-types', '.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.txt,.zip')
-        .split(',').map(s => s.trim()).filter(Boolean),
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
       zIndex: parseInt(a('z-index', '9999'), 10),
       offsetX: a('offset-x', '20px'),
       offsetY: a('offset-y', '20px'),
@@ -328,7 +379,8 @@ export class AccountdeskWidget extends HTMLElement {
     const isModal = this.config.mode === 'modal'
     const classes = ['ad-widget']
     classes.push(isInline ? 'ad-mode-inline' : isModal ? 'ad-mode-modal' : 'ad-mode-floating')
-    if (!isInline && !isModal) classes.push(this.config.position === 'bottom-left' ? 'ad-bottom-left' : 'ad-bottom-right')
+    if (!isInline && !isModal)
+      classes.push(this.config.position === 'bottom-left' ? 'ad-bottom-left' : 'ad-bottom-right')
     const s = this.strings
     const st = this.state
     // 'hidden' wird oben abgefangen; Default '' hält tsc bei der View-Union zufrieden.
@@ -375,8 +427,9 @@ export class AccountdeskWidget extends HTMLElement {
     const s = this.strings
     const st = this.state
     const cfg = this.config
-    const err = (f: string) => st.errors[f] ? `<div class="ad-error-text">${st.errors[f]}</div>` : ''
-    const cls = (f: string) => st.errors[f] ? ' ad-has-error' : ''
+    const err = (f: string) =>
+      st.errors[f] ? `<div class="ad-error-text">${st.errors[f]}</div>` : ''
+    const cls = (f: string) => (st.errors[f] ? ' ad-has-error' : '')
 
     // show-email/show-name=false blendet die Felder nur aus, wenn ein gültiger
     // Prefill-Wert existiert — sonst wäre das Pflichtfeld unausfüllbar.
@@ -422,20 +475,23 @@ export class AccountdeskWidget extends HTMLElement {
       </div>`
 
     if (cfg.suggestArticles && st.suggestResults.length > 0) {
-      const items = st.suggestResults.slice(0, 3).map(r => {
-        const title = esc(r.repo_name + ' / ' + r.path)
-        const snippet = esc(r.snippet)
-        if (r.url) {
-          return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
+      const items = st.suggestResults
+        .slice(0, 3)
+        .map((r) => {
+          const title = esc(r.repo_name + ' / ' + r.path)
+          const snippet = esc(r.snippet)
+          if (r.url) {
+            return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
             <div class="ad-suggest-title">${title}</div>
             <div class="ad-suggest-snippet">${snippet}</div>
           </a>`
-        }
-        return `<div class="ad-suggest-item-static">
+          }
+          return `<div class="ad-suggest-item-static">
           <div class="ad-suggest-title">${title}</div>
           <div class="ad-suggest-snippet">${snippet}</div>
         </div>`
-      }).join('')
+        })
+        .join('')
       fields += `<div class="ad-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
         <div class="ad-suggest-header">${esc(s.suggestHeader)}</div>
         <div class="ad-suggest-list">${items}</div>
@@ -446,21 +502,29 @@ export class AccountdeskWidget extends HTMLElement {
     // Screen Capture kann (Desktop, secure context) — sonst gar nicht rendern.
     const showScreenshot = cfg.screenshot && canCaptureScreen()
     if (cfg.showAttachments || showScreenshot) {
-      const fileList = st.files.map(f => `
+      const fileList = st.files
+        .map(
+          (f) => `
         <div class="ad-file-item" data-file-id="${f.id}">
           <span class="ad-file-info">${esc(f.name)}<span class="ad-file-size">${formatSize(f.size)}</span></span>
           <button class="ad-file-remove" type="button" data-remove="${f.id}">${s.remove}</button>
-        </div>`).join('')
-      const dropzone = cfg.showAttachments ? `
+        </div>`,
+        )
+        .join('')
+      const dropzone = cfg.showAttachments
+        ? `
         <div class="ad-dropzone" id="ad-dropzone">
           <div class="ad-dropzone-text">${s.dragDrop} ${s.dragDropOr}
             <span class="ad-browse-link">${s.browse}</span></div>
           <input class="ad-file-input" id="ad-file-input" type="file" multiple
             accept="${cfg.allowedFileTypes.join(',')}">
-        </div>` : ''
-      const screenshotBtn = showScreenshot ? `
+        </div>`
+        : ''
+      const screenshotBtn = showScreenshot
+        ? `
         <button class="ad-screenshot-btn" type="button" data-action="screenshot">
-          ${ICON_SCREENSHOT}<span>${s.screenshotCapture}</span></button>` : ''
+          ${ICON_SCREENSHOT}<span>${s.screenshotCapture}</span></button>`
+        : ''
       fields += `
       <div class="ad-field">
         <label class="ad-label">${s.labelAttachments}</label>
@@ -505,7 +569,9 @@ export class AccountdeskWidget extends HTMLElement {
 
     // Modal: Klick auf den Backdrop (außerhalb des Panels) schließt.
     if (this.config.mode === 'modal') {
-      w.addEventListener('click', (e: Event) => { if (e.target === w) this.close() })
+      w.addEventListener('click', (e: Event) => {
+        if (e.target === w) this.close()
+      })
     }
 
     // Close / Cancel
@@ -522,7 +588,7 @@ export class AccountdeskWidget extends HTMLElement {
     w.querySelector('[data-action="retry"]')?.addEventListener('click', () => this.setView('form'))
 
     // Input binding
-    w.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-field]').forEach(el => {
+    w.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-field]').forEach((el) => {
       el.addEventListener('input', () => {
         const f = el.dataset.field!
         ;(this.state as unknown as Record<string, string>)[f] = el.value
@@ -544,8 +610,14 @@ export class AccountdeskWidget extends HTMLElement {
     const fileInput = w.querySelector<HTMLInputElement>('#ad-file-input')
     if (dropzone && fileInput) {
       dropzone.addEventListener('click', () => fileInput.click())
-      dropzone.addEventListener('dragover', (e: Event) => { e.preventDefault(); dropzone.classList.add('ad-dragover') })
-      dropzone.addEventListener('dragleave', (e: Event) => { e.preventDefault(); dropzone.classList.remove('ad-dragover') })
+      dropzone.addEventListener('dragover', (e: Event) => {
+        e.preventDefault()
+        dropzone.classList.add('ad-dragover')
+      })
+      dropzone.addEventListener('dragleave', (e: Event) => {
+        e.preventDefault()
+        dropzone.classList.remove('ad-dragover')
+      })
       dropzone.addEventListener('drop', (e: Event) => {
         e.preventDefault()
         dropzone.classList.remove('ad-dragover')
@@ -559,12 +631,14 @@ export class AccountdeskWidget extends HTMLElement {
     }
 
     // Bildschirmfoto aufnehmen
-    w.querySelector('[data-action="screenshot"]')?.addEventListener('click', () => this.captureScreenshot())
+    w.querySelector('[data-action="screenshot"]')?.addEventListener('click', () =>
+      this.captureScreenshot(),
+    )
 
     // File remove
-    w.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach(btn => {
+    w.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this.state.files = this.state.files.filter(f => f.id !== btn.dataset.remove)
+        this.state.files = this.state.files.filter((f) => f.id !== btn.dataset.remove)
         this.render()
       })
     })
@@ -573,14 +647,19 @@ export class AccountdeskWidget extends HTMLElement {
     // Während einer laufenden Bildschirmfoto-Aufnahme nicht schließen (ESC gehört
     // dort dem Freigabe-Dialog des Browsers).
     if (this.config.mode !== 'inline' && this.state.view !== idle) {
-      this.escKeyHandler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !this.captureBusy) this.close() }
+      this.escKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !this.captureBusy) this.close()
+      }
       document.addEventListener('keydown', this.escKeyHandler)
     }
 
     // Focus first input when form opens (Textarea als Fallback, falls
     // E-Mail/Name/Betreff per show-*-Attribut ausgeblendet sind)
     if (this.state.view === 'form') {
-      setTimeout(() => this.root.querySelector<HTMLInputElement>('.ad-input, .ad-textarea')?.focus(), 50)
+      setTimeout(
+        () => this.root.querySelector<HTMLInputElement>('.ad-input, .ad-textarea')?.focus(),
+        50,
+      )
     }
   }
 
@@ -597,9 +676,17 @@ export class AccountdeskWidget extends HTMLElement {
     }
     this.state = {
       view: this.idleView(),
-      email: '', name: '', subject: '', message: '',
-      files: [], errors: {}, ticketId: null, errorMessage: '',
-      suggestResults: [], suggestRequestId: 0, suggestDebounceTimer: null,
+      email: '',
+      name: '',
+      subject: '',
+      message: '',
+      files: [],
+      errors: {},
+      ticketId: null,
+      errorMessage: '',
+      suggestResults: [],
+      suggestRequestId: 0,
+      suggestDebounceTimer: null,
     }
     this.render()
   }
@@ -638,7 +725,7 @@ export class AccountdeskWidget extends HTMLElement {
         body: JSON.stringify({ query, lang: this.config.language }),
       })
       if (res.ok) {
-        const data = await res.json() as SuggestResponse
+        const data = (await res.json()) as SuggestResponse
         if (Array.isArray(data?.suggest_aa)) {
           results = data.suggest_aa
         }
@@ -663,20 +750,23 @@ export class AccountdeskWidget extends HTMLElement {
       existing?.remove()
       return
     }
-    const items = st.suggestResults.slice(0, 3).map(r => {
-      const title = esc(r.repo_name + ' / ' + r.path)
-      const snippet = esc(r.snippet)
-      if (r.url) {
-        return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
+    const items = st.suggestResults
+      .slice(0, 3)
+      .map((r) => {
+        const title = esc(r.repo_name + ' / ' + r.path)
+        const snippet = esc(r.snippet)
+        if (r.url) {
+          return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
           <div class="ad-suggest-title">${title}</div>
           <div class="ad-suggest-snippet">${snippet}</div>
         </a>`
-      }
-      return `<div class="ad-suggest-item-static">
+        }
+        return `<div class="ad-suggest-item-static">
         <div class="ad-suggest-title">${title}</div>
         <div class="ad-suggest-snippet">${snippet}</div>
       </div>`
-    }).join('')
+      })
+      .join('')
     const html = `<div class="ad-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
       <div class="ad-suggest-header">${esc(s.suggestHeader)}</div>
       <div class="ad-suggest-list">${items}</div>
@@ -709,7 +799,9 @@ export class AccountdeskWidget extends HTMLElement {
       }
       try {
         this.state.files = [...this.state.files, await readFile(file)]
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
     this.render()
   }
@@ -725,7 +817,11 @@ export class AccountdeskWidget extends HTMLElement {
     const widgetEl = this.container.querySelector<HTMLElement>('.ad-widget')
     let stream: MediaStream | null = null
     try {
-      const opts: ScreenCaptureOptions = { video: true, preferCurrentTab: true, selfBrowserSurface: 'include' }
+      const opts: ScreenCaptureOptions = {
+        video: true,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+      }
       stream = await navigator.mediaDevices.getDisplayMedia(opts)
 
       // Erst NACH erfolgreicher Freigabe verstecken (Panel + Modal-Backdrop),
@@ -739,7 +835,9 @@ export class AccountdeskWidget extends HTMLElement {
       await video.play()
       // Zwei Frames warten: erst dann ist das ausgeblendete Panel sicher aus dem
       // Stream und videoWidth/Height sind belastbar.
-      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      )
 
       const width = video.videoWidth
       const height = video.videoHeight
@@ -755,19 +853,24 @@ export class AccountdeskWidget extends HTMLElement {
       // per render() das DOM ersetzt (widgetEl wäre danach eine stale Referenz).
       video.pause()
       video.srcObject = null
-      stream.getTracks().forEach(t => t.stop())
+      stream.getTracks().forEach((t) => t.stop())
       stream = null
       if (widgetEl) widgetEl.style.visibility = ''
 
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!blob) throw new Error('toBlob failed')
-      const file = new File([blob], `${this.strings.screenshotFileName}-${++screenshotCounter}.png`, { type: 'image/png' })
+      const file = new File(
+        [blob],
+        `${this.strings.screenshotFileName}-${++screenshotCounter}.png`,
+        { type: 'image/png' },
+      )
 
       const before = this.state.files.length
       await this.handleFiles([file], { imagesOnly: true })
       if (this.state.files.length === before) {
         // Von maxFiles/maxFileSize verworfen — sichtbares Feedback statt Stille.
-        const msg = before >= this.config.maxFiles ? this.strings.errorMaxFiles : this.strings.errorFileSize
+        const msg =
+          before >= this.config.maxFiles ? this.strings.errorMaxFiles : this.strings.errorFileSize
         this.state.errors = { ...this.state.errors, screenshot: msg }
         this.render()
       }
@@ -778,7 +881,7 @@ export class AccountdeskWidget extends HTMLElement {
         this.render()
       }
     } finally {
-      stream?.getTracks().forEach(t => t.stop())
+      stream?.getTracks().forEach((t) => t.stop())
       if (widgetEl) widgetEl.style.visibility = ''
       this.container.querySelector('[data-action="screenshot"]')?.removeAttribute('aria-busy')
       this.captureBusy = false
@@ -813,7 +916,7 @@ export class AccountdeskWidget extends HTMLElement {
       name: st.name.trim(),
       subject: this.config.showSubject ? st.subject.trim() : '',
       message: st.message.trim(),
-      attachments: st.files.map(f => ({ fileName: f.name, mimeType: f.type, file: f.data })),
+      attachments: st.files.map((f) => ({ fileName: f.name, mimeType: f.type, file: f.data })),
     }
     if (this.config.externalCustomerNr) {
       payload.external_customer_nr = this.config.externalCustomerNr
@@ -826,7 +929,10 @@ export class AccountdeskWidget extends HTMLElement {
       const url = `${this.config.apiUrl.replace(/\/$/, '')}/v1/widget/ticket`
       const resp = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.token}`,
+        },
         body: JSON.stringify(payload),
       })
       const data: ApiResponse = await resp.json()
@@ -834,10 +940,18 @@ export class AccountdeskWidget extends HTMLElement {
       if (resp.ok && data.success) {
         this.state = { ...this.state, view: 'success', ticketId: data.ticket_id ?? null }
       } else {
-        this.state = { ...this.state, view: 'error', errorMessage: data.error || `HTTP ${resp.status}` }
+        this.state = {
+          ...this.state,
+          view: 'error',
+          errorMessage: data.error || `HTTP ${resp.status}`,
+        }
       }
     } catch (err) {
-      this.state = { ...this.state, view: 'error', errorMessage: err instanceof Error ? err.message : 'Network error' }
+      this.state = {
+        ...this.state,
+        view: 'error',
+        errorMessage: err instanceof Error ? err.message : 'Network error',
+      }
     }
 
     this.render()
