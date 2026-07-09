@@ -103,9 +103,6 @@ npm run dev      # Demo-Seite mit Live-Vorschau auf http://localhost:5180
 npm run build    # tsc + Vite → dist/accountdesk-widget.js
 ```
 
-`npm run build:nuxt` ist ein interner Build-Schritt des accountdesk-Monorepos
-(schreibt in ein Nachbarverzeichnis) und für externe Nutzung nicht relevant.
-
 ## Lizenz
 
 [MIT](LICENSE) — Verbesserungen, die für alle nützlich sind, nehmen wir gern

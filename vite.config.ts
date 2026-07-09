@@ -48,12 +48,11 @@ export default defineConfig({
       formats: ['iife'],
       fileName: () => 'accountdesk-widget.js',
     },
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
-    minify: 'esbuild',
+    // Widely-available Baseline (Vite-Default ab v7) — explizit für ein
+    // vorhersehbares Bundle-Target auf Kundenseiten.
+    target: 'baseline-widely-available',
+    // Vite 8 ist rolldown-basiert (kein esbuild mehr) — Default-Minifier (oxc).
+    minify: true,
     outDir: process.env.WIDGET_OUT_DIR ?? 'dist',
     emptyOutDir: false,
   },
