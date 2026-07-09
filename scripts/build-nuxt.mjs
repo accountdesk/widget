@@ -1,4 +1,4 @@
-// Baut das Widget direkt nach ../www_nuxt_next/public/widget/.
+// Baut das Widget direkt nach ../www_source/public/widget/.
 // Damit landet die Web-Component-Datei dort, wo Nuxt sie als statisches Asset
 // (/widget/accountdesk-widget.js) ausliefert — kein Copy-Schritt noetig.
 //
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '..')
-const outDir = resolve(projectRoot, '../www_nuxt_next/public/widget')
+const outDir = resolve(projectRoot, '../www_source/public/widget')
 
 console.log(`[build-nuxt] vite build → ${outDir}`)
 
