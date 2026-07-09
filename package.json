@@ -19,6 +19,9 @@
   ],
   "type": "module",
   "main": "dist/accountdesk-widget.js",
+  "exports": {
+    ".": "./dist/accountdesk-widget.js"
+  },
   "files": [
     "dist",
     "src"
