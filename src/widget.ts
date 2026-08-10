@@ -127,6 +127,58 @@ function esc(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
+// ---- Kontrast (WCAG AA) --------------------------------------------------
+// Das Widget laeuft mit der Markenfarbe des Kunden. Helle Farben reissen als
+// Textfarbe auf Weiss bzw. als Flaeche hinter weisser Schrift die
+// AA-Schwelle von 4,5:1 — beim eigenen Orange (#FF6E2D) etwa nur 2,79:1.
+// Statt das jedem Kunden als Konfiguration aufzubuerden, leiten wir die
+// Textfarben hier aus der Primaerfarbe ab.
+
+function parseHex(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((hex || '').trim())
+  if (!m) return null
+  const h = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1]
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+
+function relLuminance([r, g, b]: [number, number, number]): number {
+  const ch = (c: number) => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+}
+
+function contrast(a: [number, number, number], b: [number, number, number]): number {
+  const [l1, l2] = [relLuminance(a), relLuminance(b)].sort((x, y) => y - x)
+  return (l1 + 0.05) / (l2 + 0.05)
+}
+
+const WHITE: [number, number, number] = [255, 255, 255]
+const NEAR_BLACK: [number, number, number] = [26, 15, 8]
+
+/** Lesbare Schrift AUF der Primaerflaeche: Weiss oder fast-Schwarz. */
+export function onPrimary(primary: string): string {
+  const rgb = parseHex(primary)
+  if (!rgb) return '#fff'
+  return contrast(rgb, WHITE) >= contrast(rgb, NEAR_BLACK) ? '#fff' : '#1a0f08'
+}
+
+/**
+ * Primaerfarbe als TEXT auf hellem Grund: schrittweise abdunkeln, bis 4,5:1
+ * gegen Weiss erreicht ist. Der Farbton bleibt erhalten, nur die Helligkeit
+ * sinkt — eine blaue Marke bleibt blau.
+ */
+export function primaryText(primary: string): string {
+  const rgb = parseHex(primary)
+  if (!rgb) return primary
+  let cur = rgb
+  for (let i = 0; i < 20 && contrast(cur, WHITE) < 4.5; i++) {
+    cur = cur.map(c => Math.round(c * 0.9)) as [number, number, number]
+  }
+  return '#' + cur.map(c => c.toString(16).padStart(2, '0')).join('')
+}
+
 // M8f: URL-Scheme-Whitelist. Das Widget laeuft im Origin der einbettenden
 // Kundenseite; eine `javascript:`-URL aus Tenant-/Suggest-Daten wuerde dort
 // Code ausfuehren. Nur http(s) durchlassen, sonst leer (Link wird inaktiv).
@@ -332,6 +384,11 @@ export class AccountdeskWidget extends HTMLElement {
     const h = this.root.host as HTMLElement
     h.style.setProperty('--ad-primary', this.config.primaryColor)
     h.style.setProperty('--ad-primary-hover', this.config.primaryColorHover)
+    // Aus der Markenfarbe abgeleitete Kontrastfarben — siehe onPrimary/
+    // primaryText. Ohne sie reissen helle Markenfarben WCAG AA: weisse Schrift
+    // auf der Flaeche und die Farbe selbst als Linktext liegen dann unter 4,5:1.
+    h.style.setProperty('--ad-on-primary', onPrimary(this.config.primaryColor))
+    h.style.setProperty('--ad-primary-text', primaryText(this.config.primaryColor))
     h.style.setProperty('--ad-z', String(this.config.zIndex))
     h.style.setProperty('--ad-offset-x', this.config.offsetX)
     h.style.setProperty('--ad-offset-y', this.config.offsetY)

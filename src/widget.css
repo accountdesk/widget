@@ -2,6 +2,11 @@
   --ad-primary: #1976d2;
   --ad-primary-hover: #1565c0;
   --ad-primary-light: #e3f2fd;
+  /* Kontrastfarben zur Primaerfarbe. Werden in applyProps() aus
+     `primary-color` neu berechnet — die Werte hier passen zum Default-Blau
+     und greifen nur, falls das Script sie nicht setzen kann. */
+  --ad-on-primary: #fff;
+  --ad-primary-text: #1565c0;
   --ad-text: #212121;
   --ad-text-secondary: #666;
   --ad-bg: #fff;
@@ -200,7 +205,7 @@
   font-size: 13px;
 }
 .ad-browse-link {
-  color: var(--ad-primary);
+  color: var(--ad-primary-text);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -297,7 +302,7 @@
 }
 .ad-btn-primary {
   background: var(--ad-primary);
-  color: #fff;
+  color: var(--ad-on-primary);
 }
 .ad-btn-primary:hover {
   background: var(--ad-primary-hover);
