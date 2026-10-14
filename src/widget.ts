@@ -137,7 +137,7 @@ function esc(str: string): string {
 function parseHex(hex: string): [number, number, number] | null {
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((hex || '').trim())
   if (!m) return null
-  const h = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1]
+  const h = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1]
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
 }
 
@@ -174,9 +174,9 @@ export function primaryText(primary: string): string {
   if (!rgb) return primary
   let cur = rgb
   for (let i = 0; i < 20 && contrast(cur, WHITE) < 4.5; i++) {
-    cur = cur.map(c => Math.round(c * 0.9)) as [number, number, number]
+    cur = cur.map((c) => Math.round(c * 0.9)) as [number, number, number]
   }
-  return '#' + cur.map(c => c.toString(16).padStart(2, '0')).join('')
+  return '#' + cur.map((c) => c.toString(16).padStart(2, '0')).join('')
 }
 
 // M8f: URL-Scheme-Whitelist. Das Widget laeuft im Origin der einbettenden
@@ -434,10 +434,10 @@ export class AccountdeskWidget extends HTMLElement {
 
     const isInline = this.config.mode === 'inline'
     const isModal = this.config.mode === 'modal'
-    const classes = ['ad-widget']
-    classes.push(isInline ? 'ad-mode-inline' : isModal ? 'ad-mode-modal' : 'ad-mode-floating')
+    const classes = ['acd-widget']
+    classes.push(isInline ? 'acd-mode-inline' : isModal ? 'acd-mode-modal' : 'acd-mode-floating')
     if (!isInline && !isModal)
-      classes.push(this.config.position === 'bottom-left' ? 'ad-bottom-left' : 'ad-bottom-right')
+      classes.push(this.config.position === 'bottom-left' ? 'acd-bottom-left' : 'acd-bottom-right')
     const s = this.strings
     const st = this.state
     // 'hidden' wird oben abgefangen; Default '' hält tsc bei der View-Union zufrieden.
@@ -445,33 +445,33 @@ export class AccountdeskWidget extends HTMLElement {
 
     switch (st.view) {
       case 'button':
-        html = `<button class="ad-button" type="button" aria-label="${esc(this.config.buttonText || s.buttonText)}">
+        html = `<button class="acd-button" type="button" aria-label="${esc(this.config.buttonText || s.buttonText)}">
           ${ICON_CHAT}<span>${esc(this.config.buttonText || s.buttonText)}</span></button>`
         break
       case 'form':
         html = this.renderForm()
         break
       case 'loading':
-        html = `<div class="ad-panel"><div class="ad-loading">
-          <div class="ad-spinner"></div><div class="ad-loading-text">${s.sending}</div></div></div>`
+        html = `<div class="acd-panel"><div class="acd-loading">
+          <div class="acd-spinner"></div><div class="acd-loading-text">${s.sending}</div></div></div>`
         break
       case 'success': {
         const tid = st.ticketId ? ` (#${esc(String(st.ticketId))})` : ''
         const closeLabel = isInline ? s.newMessage : s.close
-        html = `<div class="ad-panel"><div class="ad-result">
-          <div class="ad-result-icon ad-icon-success">${ICON_CHECK}</div>
-          <div class="ad-result-title">${s.successTitle}</div>
-          <div class="ad-result-text">${s.successMessage}${tid}</div>
-          <button class="ad-btn ad-btn-primary" type="button" data-action="close">${closeLabel}</button>
+        html = `<div class="acd-panel"><div class="acd-result">
+          <div class="acd-result-icon acd-icon-success">${ICON_CHECK}</div>
+          <div class="acd-result-title">${s.successTitle}</div>
+          <div class="acd-result-text">${s.successMessage}${tid}</div>
+          <button class="acd-btn acd-btn-primary" type="button" data-action="close">${closeLabel}</button>
         </div></div>`
         break
       }
       case 'error':
-        html = `<div class="ad-panel"><div class="ad-result">
-          <div class="ad-result-icon ad-icon-error">${ICON_ERROR}</div>
-          <div class="ad-result-title">${s.errorTitle}</div>
-          <div class="ad-result-text">${esc(st.errorMessage)}</div>
-          <button class="ad-btn ad-btn-primary" type="button" data-action="retry">${s.errorRetry}</button>
+        html = `<div class="acd-panel"><div class="acd-result">
+          <div class="acd-result-icon acd-icon-error">${ICON_ERROR}</div>
+          <div class="acd-result-title">${s.errorTitle}</div>
+          <div class="acd-result-text">${esc(st.errorMessage)}</div>
+          <button class="acd-btn acd-btn-primary" type="button" data-action="retry">${s.errorRetry}</button>
         </div></div>`
         break
     }
@@ -485,8 +485,8 @@ export class AccountdeskWidget extends HTMLElement {
     const st = this.state
     const cfg = this.config
     const err = (f: string) =>
-      st.errors[f] ? `<div class="ad-error-text">${st.errors[f]}</div>` : ''
-    const cls = (f: string) => (st.errors[f] ? ' ad-has-error' : '')
+      st.errors[f] ? `<div class="acd-error-text">${st.errors[f]}</div>` : ''
+    const cls = (f: string) => (st.errors[f] ? ' acd-has-error' : '')
 
     // show-email/show-name=false blendet die Felder nur aus, wenn ein gültiger
     // Prefill-Wert existiert — sonst wäre das Pflichtfeld unausfüllbar.
@@ -496,18 +496,18 @@ export class AccountdeskWidget extends HTMLElement {
     let fields = ''
     if (!hideEmail) {
       fields += `
-      <div class="ad-field">
-        <label class="ad-label" for="ad-email">${s.labelEmail} *</label>
-        <input class="ad-input${cls('email')}" id="ad-email" type="email"
+      <div class="acd-field">
+        <label class="acd-label" for="acd-email">${s.labelEmail} *</label>
+        <input class="acd-input${cls('email')}" id="acd-email" type="email"
           placeholder="${s.placeholderEmail}" value="${esc(st.email)}" data-field="email">
         ${err('email')}
       </div>`
     }
     if (!hideName) {
       fields += `
-      <div class="ad-field">
-        <label class="ad-label" for="ad-name">${s.labelName} *</label>
-        <input class="ad-input${cls('name')}" id="ad-name" type="text"
+      <div class="acd-field">
+        <label class="acd-label" for="acd-name">${s.labelName} *</label>
+        <input class="acd-input${cls('name')}" id="acd-name" type="text"
           placeholder="${s.placeholderName}" value="${esc(st.name)}" data-field="name">
         ${err('name')}
       </div>`
@@ -515,18 +515,18 @@ export class AccountdeskWidget extends HTMLElement {
 
     if (cfg.showSubject) {
       fields += `
-      <div class="ad-field">
-        <label class="ad-label" for="ad-subject">${s.labelSubject}</label>
-        <input class="ad-input${cls('subject')}" id="ad-subject" type="text"
+      <div class="acd-field">
+        <label class="acd-label" for="acd-subject">${s.labelSubject}</label>
+        <input class="acd-input${cls('subject')}" id="acd-subject" type="text"
           placeholder="${s.placeholderSubject}" value="${esc(st.subject)}" data-field="subject">
         ${err('subject')}
       </div>`
     }
 
     fields += `
-      <div class="ad-field">
-        <label class="ad-label" for="ad-message">${s.labelMessage} *</label>
-        <textarea class="ad-textarea${cls('message')}" id="ad-message"
+      <div class="acd-field">
+        <label class="acd-label" for="acd-message">${s.labelMessage} *</label>
+        <textarea class="acd-textarea${cls('message')}" id="acd-message"
           placeholder="${s.placeholderMessage}" data-field="message">${esc(st.message)}</textarea>
         ${err('message')}
       </div>`
@@ -538,20 +538,20 @@ export class AccountdeskWidget extends HTMLElement {
           const title = esc(r.repo_name + ' / ' + r.path)
           const snippet = esc(r.snippet)
           if (r.url) {
-            return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
-            <div class="ad-suggest-title">${title}</div>
-            <div class="ad-suggest-snippet">${snippet}</div>
+            return `<a class="acd-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="acd-suggest-title">${title}</div>
+            <div class="acd-suggest-snippet">${snippet}</div>
           </a>`
           }
-          return `<div class="ad-suggest-item-static">
-          <div class="ad-suggest-title">${title}</div>
-          <div class="ad-suggest-snippet">${snippet}</div>
+          return `<div class="acd-suggest-item-static">
+          <div class="acd-suggest-title">${title}</div>
+          <div class="acd-suggest-snippet">${snippet}</div>
         </div>`
         })
         .join('')
-      fields += `<div class="ad-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
-        <div class="ad-suggest-header">${esc(s.suggestHeader)}</div>
-        <div class="ad-suggest-list">${items}</div>
+      fields += `<div class="acd-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
+        <div class="acd-suggest-header">${esc(s.suggestHeader)}</div>
+        <div class="acd-suggest-list">${items}</div>
       </div>`
     }
 
@@ -562,55 +562,55 @@ export class AccountdeskWidget extends HTMLElement {
       const fileList = st.files
         .map(
           (f) => `
-        <div class="ad-file-item" data-file-id="${f.id}">
-          <span class="ad-file-info">${esc(f.name)}<span class="ad-file-size">${formatSize(f.size)}</span></span>
-          <button class="ad-file-remove" type="button" data-remove="${f.id}">${s.remove}</button>
+        <div class="acd-file-item" data-file-id="${f.id}">
+          <span class="acd-file-info">${esc(f.name)}<span class="acd-file-size">${formatSize(f.size)}</span></span>
+          <button class="acd-file-remove" type="button" data-remove="${f.id}">${s.remove}</button>
         </div>`,
         )
         .join('')
       const dropzone = cfg.showAttachments
         ? `
-        <div class="ad-dropzone" id="ad-dropzone">
-          <div class="ad-dropzone-text">${s.dragDrop} ${s.dragDropOr}
-            <span class="ad-browse-link">${s.browse}</span></div>
-          <input class="ad-file-input" id="ad-file-input" type="file" multiple
+        <div class="acd-dropzone" id="acd-dropzone">
+          <div class="acd-dropzone-text">${s.dragDrop} ${s.dragDropOr}
+            <span class="acd-browse-link">${s.browse}</span></div>
+          <input class="acd-file-input" id="acd-file-input" type="file" multiple
             accept="${cfg.allowedFileTypes.join(',')}">
         </div>`
         : ''
       const screenshotBtn = showScreenshot
         ? `
-        <button class="ad-screenshot-btn" type="button" data-action="screenshot">
+        <button class="acd-screenshot-btn" type="button" data-action="screenshot">
           ${ICON_SCREENSHOT}<span>${s.screenshotCapture}</span></button>`
         : ''
       fields += `
-      <div class="ad-field">
-        <label class="ad-label">${s.labelAttachments}</label>
+      <div class="acd-field">
+        <label class="acd-label">${s.labelAttachments}</label>
         ${dropzone}
         ${screenshotBtn}
         ${err('screenshot')}
-        ${st.files.length ? `<div class="ad-file-list">${fileList}</div>` : ''}
+        ${st.files.length ? `<div class="acd-file-list">${fileList}</div>` : ''}
       </div>`
     }
 
     const isInline = cfg.mode === 'inline'
     const showHeader = cfg.showHeader && !isInline
     const header = showHeader
-      ? `<div class="ad-panel-header">
-          <span class="ad-panel-title">${esc(cfg.title || s.title)}</span>
-          <button class="ad-close-btn" type="button" aria-label="${s.close}">${ICON_CLOSE}</button>
+      ? `<div class="acd-panel-header">
+          <span class="acd-panel-title">${esc(cfg.title || s.title)}</span>
+          <button class="acd-close-btn" type="button" aria-label="${s.close}">${ICON_CLOSE}</button>
         </div>`
       : ''
     const cancelBtn = isInline
       ? ''
-      : `<button class="ad-btn ad-btn-secondary" type="button" data-action="cancel">${s.cancel}</button>`
+      : `<button class="acd-btn acd-btn-secondary" type="button" data-action="cancel">${s.cancel}</button>`
 
     return `
-    <div class="ad-panel" role="${isInline ? 'form' : 'dialog'}" aria-label="${esc(cfg.title || s.title)}">
+    <div class="acd-panel" role="${isInline ? 'form' : 'dialog'}" aria-label="${esc(cfg.title || s.title)}">
       ${header}
-      <div class="ad-form">${fields}</div>
-      <div class="ad-form-footer">
+      <div class="acd-form">${fields}</div>
+      <div class="acd-form-footer">
         ${cancelBtn}
-        <button class="ad-btn ad-btn-primary" type="button" data-action="submit">${s.submit}</button>
+        <button class="acd-btn acd-btn-primary" type="button" data-action="submit">${s.submit}</button>
       </div>
     </div>`
   }
@@ -618,11 +618,11 @@ export class AccountdeskWidget extends HTMLElement {
   // ---- Event binding ----
 
   private bindEvents() {
-    const w = this.container.querySelector('.ad-widget')!
+    const w = this.container.querySelector('.acd-widget')!
     const idle: WidgetView = this.idleView()
 
     // Open form
-    w.querySelector('.ad-button')?.addEventListener('click', () => this.setView('form'))
+    w.querySelector('.acd-button')?.addEventListener('click', () => this.setView('form'))
 
     // Modal: Klick auf den Backdrop (außerhalb des Panels) schließt.
     if (this.config.mode === 'modal') {
@@ -632,7 +632,7 @@ export class AccountdeskWidget extends HTMLElement {
     }
 
     // Close / Cancel
-    w.querySelector('.ad-close-btn')?.addEventListener('click', () => this.setView(idle))
+    w.querySelector('.acd-close-btn')?.addEventListener('click', () => this.setView(idle))
     w.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.setView(idle))
 
     // Submit
@@ -653,8 +653,8 @@ export class AccountdeskWidget extends HTMLElement {
           const newErr = { ...this.state.errors }
           delete newErr[f]
           this.state.errors = newErr
-          el.classList.remove('ad-has-error')
-          el.parentElement?.querySelector('.ad-error-text')?.remove()
+          el.classList.remove('acd-has-error')
+          el.parentElement?.querySelector('.acd-error-text')?.remove()
         }
         if (this.config.suggestArticles && (f === 'subject' || f === 'message')) {
           this.scheduleSuggest()
@@ -663,21 +663,21 @@ export class AccountdeskWidget extends HTMLElement {
     })
 
     // File upload
-    const dropzone = w.querySelector<HTMLElement>('#ad-dropzone')
-    const fileInput = w.querySelector<HTMLInputElement>('#ad-file-input')
+    const dropzone = w.querySelector<HTMLElement>('#acd-dropzone')
+    const fileInput = w.querySelector<HTMLInputElement>('#acd-file-input')
     if (dropzone && fileInput) {
       dropzone.addEventListener('click', () => fileInput.click())
       dropzone.addEventListener('dragover', (e: Event) => {
         e.preventDefault()
-        dropzone.classList.add('ad-dragover')
+        dropzone.classList.add('acd-dragover')
       })
       dropzone.addEventListener('dragleave', (e: Event) => {
         e.preventDefault()
-        dropzone.classList.remove('ad-dragover')
+        dropzone.classList.remove('acd-dragover')
       })
       dropzone.addEventListener('drop', (e: Event) => {
         e.preventDefault()
-        dropzone.classList.remove('ad-dragover')
+        dropzone.classList.remove('acd-dragover')
         const dt = (e as DragEvent).dataTransfer
         if (dt?.files) this.handleFiles(Array.from(dt.files))
       })
@@ -714,7 +714,7 @@ export class AccountdeskWidget extends HTMLElement {
     // E-Mail/Name/Betreff per show-*-Attribut ausgeblendet sind)
     if (this.state.view === 'form') {
       setTimeout(
-        () => this.root.querySelector<HTMLInputElement>('.ad-input, .ad-textarea')?.focus(),
+        () => this.root.querySelector<HTMLInputElement>('.acd-input, .acd-textarea')?.focus(),
         50,
       )
     }
@@ -798,9 +798,9 @@ export class AccountdeskWidget extends HTMLElement {
   private renderSuggestOnly() {
     // Reines DOM-Update des Suggest-Containers ohne Full-Render
     // (sonst verliert das Textarea den Fokus und springt zum Anfang).
-    const form = this.root.querySelector<HTMLElement>('.ad-form')
+    const form = this.root.querySelector<HTMLElement>('.acd-form')
     if (!form) return
-    const existing = form.querySelector('.ad-suggest')
+    const existing = form.querySelector('.acd-suggest')
     const st = this.state
     const s = this.strings
     if (!this.config.suggestArticles || st.suggestResults.length === 0) {
@@ -813,26 +813,26 @@ export class AccountdeskWidget extends HTMLElement {
         const title = esc(r.repo_name + ' / ' + r.path)
         const snippet = esc(r.snippet)
         if (r.url) {
-          return `<a class="ad-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
-          <div class="ad-suggest-title">${title}</div>
-          <div class="ad-suggest-snippet">${snippet}</div>
+          return `<a class="acd-suggest-item" href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">
+          <div class="acd-suggest-title">${title}</div>
+          <div class="acd-suggest-snippet">${snippet}</div>
         </a>`
         }
-        return `<div class="ad-suggest-item-static">
-        <div class="ad-suggest-title">${title}</div>
-        <div class="ad-suggest-snippet">${snippet}</div>
+        return `<div class="acd-suggest-item-static">
+        <div class="acd-suggest-title">${title}</div>
+        <div class="acd-suggest-snippet">${snippet}</div>
       </div>`
       })
       .join('')
-    const html = `<div class="ad-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
-      <div class="ad-suggest-header">${esc(s.suggestHeader)}</div>
-      <div class="ad-suggest-list">${items}</div>
+    const html = `<div class="acd-suggest" role="region" aria-label="${esc(s.suggestHeader)}">
+      <div class="acd-suggest-header">${esc(s.suggestHeader)}</div>
+      <div class="acd-suggest-list">${items}</div>
     </div>`
     if (existing) {
       existing.outerHTML = html
     } else {
       // Direkt nach dem Message-Feld einsetzen
-      const msgField = form.querySelector('[data-field="message"]')?.closest('.ad-field')
+      const msgField = form.querySelector('[data-field="message"]')?.closest('.acd-field')
       if (msgField) {
         msgField.insertAdjacentHTML('afterend', html)
       } else {
@@ -871,7 +871,7 @@ export class AccountdeskWidget extends HTMLElement {
     if (this.captureBusy) return
     this.captureBusy = true
     this.container.querySelector('[data-action="screenshot"]')?.setAttribute('aria-busy', 'true')
-    const widgetEl = this.container.querySelector<HTMLElement>('.ad-widget')
+    const widgetEl = this.container.querySelector<HTMLElement>('.acd-widget')
     let stream: MediaStream | null = null
     try {
       const opts: ScreenCaptureOptions = {

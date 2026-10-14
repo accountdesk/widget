@@ -1,3 +1,7 @@
+/* Klassen, IDs und Keyframes tragen das Praefix `acd-`, nicht `ad-`:
+   Werbeblocker blenden `.ad-widget`, `.ad-panel` usw. als Werbeflaeche aus,
+   teils auch innerhalb des Shadow DOM. Die CSS-Variablen `--ad-*` sind
+   davon nicht betroffen und bleiben unveraendert. */
 :host {
   --ad-primary: #1976d2;
   --ad-primary-hover: #1565c0;
@@ -29,24 +33,24 @@
   padding: 0;
 }
 
-.ad-widget.ad-mode-floating {
+.acd-widget.acd-mode-floating {
   position: fixed;
   z-index: var(--ad-z);
 }
-.ad-widget.ad-mode-floating.ad-bottom-right {
+.acd-widget.acd-mode-floating.acd-bottom-right {
   bottom: var(--ad-offset-y, 20px);
   right: var(--ad-offset-x, 20px);
 }
-.ad-widget.ad-mode-floating.ad-bottom-left {
+.acd-widget.acd-mode-floating.acd-bottom-left {
   bottom: var(--ad-offset-y, 20px);
   left: var(--ad-offset-x, 20px);
 }
-.ad-widget.ad-mode-inline {
+.acd-widget.acd-mode-inline {
   display: block;
   width: 100%;
 }
 
-.ad-button {
+.acd-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -64,21 +68,21 @@
     transform 0.15s;
   font-family: inherit;
 }
-.ad-button:hover {
+.acd-button:hover {
   background: var(--ad-primary-hover);
   transform: scale(1.03);
 }
-.ad-button:focus-visible {
+.acd-button:focus-visible {
   outline: 2px solid var(--ad-primary);
   outline-offset: 2px;
 }
-.ad-button svg {
+.acd-button svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
 }
 
-.ad-panel {
+.acd-panel {
   position: absolute;
   bottom: 64px;
   width: 380px;
@@ -89,15 +93,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: ad-slide-up 0.25s ease-out;
+  animation: acd-slide-up 0.25s ease-out;
 }
-.ad-bottom-right .ad-panel {
+.acd-bottom-right .acd-panel {
   right: 0;
 }
-.ad-bottom-left .ad-panel {
+.acd-bottom-left .acd-panel {
   left: 0;
 }
-@keyframes ad-slide-up {
+@keyframes acd-slide-up {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -108,7 +112,7 @@
   }
 }
 
-.ad-panel-header {
+.acd-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -116,11 +120,11 @@
   background: var(--ad-primary);
   color: #fff;
 }
-.ad-panel-title {
+.acd-panel-title {
   font-size: 16px;
   font-weight: 600;
 }
-.ad-close-btn {
+.acd-close-btn {
   background: none;
   border: none;
   color: #fff;
@@ -130,31 +134,31 @@
   display: flex;
   font-family: inherit;
 }
-.ad-close-btn:hover {
+.acd-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-.ad-close-btn svg {
+.acd-close-btn svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
 }
 
-.ad-form {
+.acd-form {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
 }
-.ad-field {
+.acd-field {
   margin-bottom: 16px;
 }
-.ad-label {
+.acd-label {
   display: block;
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 4px;
 }
-.ad-input,
-.ad-textarea {
+.acd-input,
+.acd-textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--ad-border);
@@ -165,27 +169,27 @@
   background: var(--ad-bg);
   color: var(--ad-text);
 }
-.ad-input:focus,
-.ad-textarea:focus {
+.acd-input:focus,
+.acd-textarea:focus {
   outline: none;
   border-color: var(--ad-primary);
   box-shadow: 0 0 0 2px var(--ad-primary-light);
 }
-.ad-input.ad-has-error,
-.ad-textarea.ad-has-error {
+.acd-input.acd-has-error,
+.acd-textarea.acd-has-error {
   border-color: var(--ad-error);
 }
-.ad-textarea {
+.acd-textarea {
   min-height: 100px;
   resize: vertical;
 }
-.ad-error-text {
+.acd-error-text {
   font-size: 12px;
   color: var(--ad-error);
   margin-top: 4px;
 }
 
-.ad-dropzone {
+.acd-dropzone {
   border: 2px dashed var(--ad-border);
   border-radius: var(--ad-radius);
   padding: 16px;
@@ -196,23 +200,23 @@
     background 0.2s;
   color: var(--ad-text-secondary);
 }
-.ad-dropzone:hover,
-.ad-dropzone.ad-dragover {
+.acd-dropzone:hover,
+.acd-dropzone.acd-dragover {
   border-color: var(--ad-primary);
   background: var(--ad-primary-light);
 }
-.ad-dropzone-text {
+.acd-dropzone-text {
   font-size: 13px;
 }
-.ad-browse-link {
+.acd-browse-link {
   color: var(--ad-primary-text);
   cursor: pointer;
   text-decoration: underline;
 }
-.ad-file-input {
+.acd-file-input {
   display: none;
 }
-.ad-screenshot-btn {
+.acd-screenshot-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -232,23 +236,23 @@
     border-color 0.2s,
     background 0.2s;
 }
-.ad-screenshot-btn:hover {
+.acd-screenshot-btn:hover {
   border-color: var(--ad-primary);
   background: var(--ad-primary-light);
 }
-.ad-screenshot-btn[aria-busy='true'] {
+.acd-screenshot-btn[aria-busy='true'] {
   opacity: 0.6;
   cursor: default;
 }
-.ad-screenshot-btn svg {
+.acd-screenshot-btn svg {
   width: 18px;
   height: 18px;
   fill: currentColor;
 }
-.ad-file-list {
+.acd-file-list {
   margin-top: 8px;
 }
-.ad-file-item {
+.acd-file-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -258,18 +262,18 @@
   margin-bottom: 4px;
   font-size: 13px;
 }
-.ad-file-info {
+.acd-file-info {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
   margin-right: 8px;
 }
-.ad-file-size {
+.acd-file-size {
   color: var(--ad-text-secondary);
   margin-left: 8px;
 }
-.ad-file-remove {
+.acd-file-remove {
   background: none;
   border: none;
   color: var(--ad-error);
@@ -279,17 +283,17 @@
   border-radius: 4px;
   font-family: inherit;
 }
-.ad-file-remove:hover {
+.acd-file-remove:hover {
   background: #fdecea;
 }
 
-.ad-form-footer {
+.acd-form-footer {
   display: flex;
   gap: 8px;
   padding: 16px 20px;
   border-top: 1px solid var(--ad-border);
 }
-.ad-btn {
+.acd-btn {
   flex: 1;
   padding: 10px 16px;
   border-radius: var(--ad-radius);
@@ -300,31 +304,31 @@
   transition: background 0.2s;
   font-family: inherit;
 }
-.ad-btn-primary {
+.acd-btn-primary {
   background: var(--ad-primary);
   color: var(--ad-on-primary);
 }
-.ad-btn-primary:hover {
+.acd-btn-primary:hover {
   background: var(--ad-primary-hover);
 }
-.ad-btn-primary:disabled {
+.acd-btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.ad-btn-secondary {
+.acd-btn-secondary {
   background: transparent;
   color: var(--ad-text-secondary);
   border: 1px solid var(--ad-border);
 }
-.ad-btn-secondary:hover {
+.acd-btn-secondary:hover {
   background: #f5f5f5;
 }
 
-.ad-result {
+.acd-result {
   padding: 40px 20px;
   text-align: center;
 }
-.ad-result-icon {
+.acd-result-icon {
   width: 56px;
   height: 56px;
   margin: 0 auto 16px;
@@ -333,37 +337,37 @@
   align-items: center;
   justify-content: center;
 }
-.ad-result-icon.ad-icon-success {
+.acd-result-icon.acd-icon-success {
   background: #e8f5e9;
   color: var(--ad-success);
 }
-.ad-result-icon.ad-icon-error {
+.acd-result-icon.acd-icon-error {
   background: #fdecea;
   color: var(--ad-error);
 }
-.ad-result-icon svg {
+.acd-result-icon svg {
   width: 28px;
   height: 28px;
   fill: currentColor;
 }
-.ad-result-title {
+.acd-result-title {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
 }
-.ad-result-text {
+.acd-result-text {
   color: var(--ad-text-secondary);
   margin-bottom: 24px;
 }
 
-.ad-suggest {
+.acd-suggest {
   margin: -4px 0 16px;
   padding: 12px;
   border: 1px solid var(--ad-border);
   border-radius: var(--ad-radius);
   background: #fafafa;
 }
-.ad-suggest-header {
+.acd-suggest-header {
   font-size: 12px;
   font-weight: 600;
   color: var(--ad-text-secondary);
@@ -371,12 +375,12 @@
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
-.ad-suggest-list {
+.acd-suggest-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.ad-suggest-item {
+.acd-suggest-item {
   display: block;
   padding: 8px 10px;
   border-radius: 6px;
@@ -388,13 +392,13 @@
     border-color 0.15s,
     background 0.15s;
 }
-.ad-suggest-item:hover,
-.ad-suggest-item:focus-visible {
+.acd-suggest-item:hover,
+.acd-suggest-item:focus-visible {
   border-color: var(--ad-primary);
   background: var(--ad-primary-light);
   outline: none;
 }
-.ad-suggest-title {
+.acd-suggest-title {
   font-size: 13px;
   font-weight: 500;
   color: var(--ad-primary);
@@ -403,7 +407,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ad-suggest-snippet {
+.acd-suggest-snippet {
   font-size: 12px;
   color: var(--ad-text-secondary);
   line-height: 1.4;
@@ -412,7 +416,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.ad-suggest-item-static {
+.acd-suggest-item-static {
   display: block;
   padding: 8px 10px;
   border-radius: 6px;
@@ -420,30 +424,30 @@
   border: 1px solid transparent;
 }
 
-.ad-loading {
+.acd-loading {
   padding: 60px 20px;
   text-align: center;
 }
-.ad-spinner {
+.acd-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid var(--ad-border);
   border-top-color: var(--ad-primary);
   border-radius: 50%;
-  animation: ad-spin 0.8s linear infinite;
+  animation: acd-spin 0.8s linear infinite;
   margin: 0 auto 16px;
 }
-@keyframes ad-spin {
+@keyframes acd-spin {
   to {
     transform: rotate(360deg);
   }
 }
-.ad-loading-text {
+.acd-loading-text {
   color: var(--ad-text-secondary);
 }
 
 @media (max-width: 480px) {
-  .ad-mode-floating .ad-panel {
+  .acd-mode-floating .acd-panel {
     position: fixed;
     top: 0;
     left: 0;
@@ -457,7 +461,7 @@
 
 /* Inline-Modus: Panel als statische Box statt Floating-Bubble.
    Kein Border/Shadow — die einbettende Seite liefert i.d.R. den Container-Rahmen. */
-.ad-mode-inline .ad-panel {
+.acd-mode-inline .acd-panel {
   position: static;
   width: 100%;
   max-height: none;
@@ -466,23 +470,23 @@
   border: none;
   border-radius: 0;
 }
-.ad-mode-inline .ad-form {
+.acd-mode-inline .acd-form {
   max-height: none;
   padding: 0;
 }
-.ad-mode-inline .ad-form-footer {
+.acd-mode-inline .acd-form-footer {
   padding: 16px 0 0;
   margin-top: 16px;
 }
-.ad-mode-inline .ad-result {
+.acd-mode-inline .acd-result {
   padding: 56px 0;
 }
-.ad-mode-inline .ad-loading {
+.acd-mode-inline .acd-loading {
   padding: 80px 0;
 }
 
 /* Modal-Modus: zentriertes Dialog-Overlay mit Backdrop, per open()/close() gesteuert. */
-.ad-widget.ad-mode-modal {
+.acd-widget.acd-mode-modal {
   position: fixed;
   inset: 0;
   z-index: var(--ad-z);
@@ -491,9 +495,9 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: ad-fade-in 0.2s ease-out;
+  animation: acd-fade-in 0.2s ease-out;
 }
-@keyframes ad-fade-in {
+@keyframes acd-fade-in {
   from {
     opacity: 0;
   }
@@ -501,7 +505,7 @@
     opacity: 1;
   }
 }
-.ad-mode-modal .ad-panel {
+.acd-mode-modal .acd-panel {
   position: static;
   bottom: auto;
   width: 420px;
@@ -509,10 +513,10 @@
   max-height: 85vh;
 }
 @media (max-width: 480px) {
-  .ad-mode-modal {
+  .acd-mode-modal {
     padding: 0;
   }
-  .ad-mode-modal .ad-panel {
+  .acd-mode-modal .acd-panel {
     width: 100%;
     max-height: 100%;
     height: 100%;
