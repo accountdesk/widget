@@ -231,6 +231,39 @@ function canCaptureScreen(): boolean {
   return typeof navigator.mediaDevices?.getDisplayMedia === 'function'
 }
 
+// Wartet, bis der Aufnahme-Stream Frames liefert, die nach dem Ausblenden des
+// Panels entstanden sind: mindestens FRESH_MIN_MS Zeit und FRESH_MIN_FRAMES neue
+// Frames, höchstens FRESH_MAX_MS (ein unbewegter Bildschirm liefert kaum Frames).
+// Ohne requestVideoFrameCallback (ältere Browser) bleibt nur die Mindestzeit.
+const FRESH_MIN_MS = 300
+const FRESH_MIN_FRAMES = 2
+const FRESH_MAX_MS = 1500
+
+function waitForFreshFrames(video: HTMLVideoElement): Promise<void> {
+  const start = performance.now()
+  return new Promise<void>((resolve) => {
+    if (typeof video.requestVideoFrameCallback !== 'function') {
+      setTimeout(resolve, FRESH_MIN_MS)
+      return
+    }
+    let finished = false
+    const done = () => {
+      finished = true
+      clearTimeout(timeout)
+      resolve()
+    }
+    const timeout = setTimeout(done, FRESH_MAX_MS)
+    let frames = 0
+    const onFrame = () => {
+      if (finished) return
+      frames++
+      if (frames >= FRESH_MIN_FRAMES && performance.now() - start >= FRESH_MIN_MS) done()
+      else video.requestVideoFrameCallback(onFrame)
+    }
+    video.requestVideoFrameCallback(onFrame)
+  })
+}
+
 function readFile(file: File): Promise<WidgetFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -890,11 +923,10 @@ export class AccountdeskWidget extends HTMLElement {
       video.muted = true
       video.playsInline = true
       await video.play()
-      // Zwei Frames warten: erst dann ist das ausgeblendete Panel sicher aus dem
-      // Stream und videoWidth/Height sind belastbar.
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      )
+      // Die Bildschirmaufnahme hinkt dem Bildschirm hinterher: die ersten Frames
+      // zeigen das Panel oft noch. Zwei requestAnimationFrame reichten dafür
+      // nicht (Meldung: das Kontaktfenster war mit auf dem Bild).
+      await waitForFreshFrames(video)
 
       const width = video.videoWidth
       const height = video.videoHeight
