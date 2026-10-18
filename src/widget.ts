@@ -284,6 +284,52 @@ function readFile(file: File): Promise<WidgetFile> {
 }
 
 // ============================================
+// IDEMPOTENCY-KEY
+// ============================================
+
+/**
+ * Schlüssel je Absendevorgang (Header `Idempotency-Key`): Der Server legt das
+ * Ticket bei einer Wiederholung mit demselben Schlüssel nicht noch einmal an,
+ * sondern liefert die erste Antwort erneut. Ältere Server ignorieren den Header.
+ */
+function createIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/** Antworten, nach denen dieselbe Anfrage noch einmal gesendet werden darf. */
+function isRetryableStatus(status: number): boolean {
+  return status === 409 || status === 429 || status === 502 || status === 503 || status === 504
+}
+
+/**
+ * Wartezeiten der automatischen Wiederholungen. Mindestens 2 s, weil der Server
+ * je Widget-Token nur eine Anfrage alle 2 s annimmt (sonst 429).
+ */
+const SUBMIT_RETRY_DELAYS_MS = [2500, 5000]
+
+/** fetch mit Wiederholung bei Netzfehler und 409/429/502–504 — nur mit Idempotency-Key verwenden. */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const canRetry = attempt < SUBMIT_RETRY_DELAYS_MS.length
+    try {
+      const resp = await fetch(url, init)
+      if (!canRetry || !isRetryableStatus(resp.status)) return resp
+    } catch (err) {
+      if (!canRetry) throw err
+    }
+    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_DELAYS_MS[attempt]))
+  }
+}
+
+// ============================================
 // WIDGET CLASS
 // ============================================
 
@@ -310,6 +356,11 @@ export class AccountdeskWidget extends HTMLElement {
   // Guard gegen Doppelklick auf den Bildschirmfoto-Knopf; bewusst kein State
   // (ein Re-Render während der Freigabe-Dialog offen ist wäre kontraproduktiv).
   private captureBusy = false
+  // Idempotency-Key je Absendevorgang: dieselbe Anfrage (gleicher Inhalt) behält
+  // ihren Schlüssel über automatische Wiederholungen und „Erneut versuchen“ hinweg —
+  // so entsteht bei schlechtem Netz kein zweites Ticket. Nach Erfolg oder
+  // endgültigem Fehler verworfen.
+  private submitKey: { body: string; key: string } | null = null
 
   static get observedAttributes() {
     return [
@@ -1016,14 +1067,23 @@ export class AccountdeskWidget extends HTMLElement {
 
     try {
       const url = `${this.config.apiUrl.replace(/\/$/, '')}/v1/widget/ticket`
-      const resp = await fetch(url, {
+      const body = JSON.stringify(payload)
+      if (this.submitKey?.body !== body) {
+        this.submitKey = { body, key: createIdempotencyKey() }
+      }
+      const resp = await fetchWithRetry(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.config.token}`,
+          'Idempotency-Key': this.submitKey.key,
         },
-        body: JSON.stringify(payload),
+        body,
       })
+      // Endgültige Antwort: Schlüssel verwerfen. Bei 409/429/5xx bleibt er für „Erneut versuchen“.
+      if (!isRetryableStatus(resp.status)) {
+        this.submitKey = null
+      }
       const data: ApiResponse = await resp.json()
 
       if (resp.ok && data.success) {

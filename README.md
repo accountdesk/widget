@@ -62,6 +62,28 @@ angepasste Version weiterhin über den dokumentierten Endpoint
 (`POST /v1/widget/ticket` mit eurem Widget-Token als Bearer); die
 Domain-Whitelist des Tokens gilt unverändert.
 
+Empfohlen für angepasste Versionen: bei jedem Absenden einen Header
+`Idempotency-Key` mit einer zufälligen UUID mitschicken und bei Wiederholungen
+derselben Anfrage (Netzfehler, Antwort 409/429/502–504) **denselben** Wert
+verwenden. Der Server legt das Ticket dann nur einmal an und liefert bei der
+Wiederholung die erste Antwort (Header `Idempotent-Replayed: true`). Ohne den
+Header werden Anfragen weiterhin angenommen.
+
+Regeln für den Schlüssel (max. 100 sichtbare ASCII-Zeichen, aufbewahrt 24 h):
+
+- **Neuer Schlüssel für neuen Inhalt.** Derselbe Schlüssel mit anderem Body
+  wird mit `422` abgelehnt — ändert der Nutzer das Formular nach einem Fehler,
+  einen neuen Schlüssel erzeugen.
+- **`409`** heißt: die erste Anfrage mit diesem Schlüssel läuft noch (z. B.
+  großer Anhang). Kurz warten und mit demselben Schlüssel wiederholen.
+- Der Server nimmt je Widget-Token höchstens eine Anfrage alle 2 Sekunden an
+  (`429`) — Wiederholungen frühestens nach 2 Sekunden.
+
+Das mitgelieferte Widget macht das ab Version 1.2.0 selbst: ein Schlüssel je
+Absendevorgang, bis zu zwei automatische Wiederholungen (nach 2,5 und 5 s) bei
+Netzfehler oder `409`/`429`/`502`–`504`, und „Erneut versuchen“ nach einem
+Fehler nutzt denselben Schlüssel, solange der Inhalt gleich bleibt.
+
 ## Attribut-Referenz
 
 | Attribut | Standard | Wirkung |
