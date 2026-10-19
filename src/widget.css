@@ -11,10 +11,17 @@
      und greifen nur, falls das Script sie nicht setzen kann. */
   --ad-on-primary: #fff;
   --ad-primary-text: #1565c0;
+  /* Fokusring: Primaerfarbe, bei Bedarf abgedunkelt auf >= 3:1 gegen Weiss
+     (WCAG 1.4.11). Wird in applyProps() aus `primary-color` berechnet. */
+  --ad-focus: #1976d2;
   --ad-text: #212121;
   --ad-text-secondary: #666;
   --ad-bg: #fff;
+  /* Trennlinien und Rahmen ohne Bedienfunktion duerfen hell bleiben. */
   --ad-border: #e0e0e0;
+  /* Rahmen der Eingabefelder: 3,45:1 auf Weiss (WCAG 1.4.11 verlangt 3:1),
+     #e0e0e0 hatte nur 1,32:1. */
+  --ad-input-border: #8a8a8a;
   --ad-error: #d32f2f;
   --ad-success: #2e7d32;
   --ad-radius: 8px;
@@ -56,7 +63,8 @@
   gap: 8px;
   padding: 12px 24px;
   background: var(--ad-primary);
-  color: #fff;
+  /* Schrift auf der Markenfarbe wie beim Absenden-Knopf aus onPrimary() — Weiss auf #FF6E2D hatte 2,79:1 */
+  color: var(--ad-on-primary);
   border: none;
   border-radius: 28px;
   cursor: pointer;
@@ -73,7 +81,7 @@
   transform: scale(1.03);
 }
 .acd-button:focus-visible {
-  outline: 2px solid var(--ad-primary);
+  outline: 2px solid var(--ad-focus);
   outline-offset: 2px;
 }
 .acd-button svg {
@@ -118,7 +126,7 @@
   justify-content: space-between;
   padding: 16px 20px;
   background: var(--ad-primary);
-  color: #fff;
+  color: var(--ad-on-primary);
 }
 .acd-panel-title {
   font-size: 16px;
@@ -127,7 +135,7 @@
 .acd-close-btn {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--ad-on-primary);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -161,7 +169,7 @@
 .acd-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--ad-border);
+  border: 1px solid var(--ad-input-border);
   border-radius: var(--ad-radius);
   font-size: 14px;
   font-family: inherit;
@@ -171,9 +179,25 @@
 }
 .acd-input:focus,
 .acd-textarea:focus {
+  /* Sichtbarer 2-px-Ring statt hellem Schatten (der hatte 1,14:1) */
+  outline: 2px solid var(--ad-focus);
+  outline-offset: 1px;
+  border-color: var(--ad-focus);
+}
+/* Alle uebrigen Bedienelemente im Fenster bekommen denselben Ring bei Tastaturbedienung */
+.acd-btn:focus-visible,
+.acd-close-btn:focus-visible,
+.acd-file-remove:focus-visible,
+.acd-screenshot-btn:focus-visible,
+.acd-dropzone:focus-visible {
+  outline: 2px solid var(--ad-focus);
+  outline-offset: 2px;
+}
+.acd-panel-header .acd-close-btn:focus-visible {
+  outline-color: var(--ad-on-primary);
+}
+.acd-panel:focus {
   outline: none;
-  border-color: var(--ad-primary);
-  box-shadow: 0 0 0 2px var(--ad-primary-light);
 }
 .acd-input.acd-has-error,
 .acd-textarea.acd-has-error {

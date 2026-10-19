@@ -17,8 +17,9 @@ automatisch ein Ticket — inklusive Anhängen und optionalem Bildschirmfoto.
 
 ## Schnellstart
 
-Widget-Token in accountdesk erstellen (Einstellungen → API-Tokens → Typ
-„Widget", erlaubte Domains eintragen), dann:
+Kontaktformular in accountdesk anlegen (Einstellungen → Integrationen →
+Hinzufügen → Kontaktformular (Website), erlaubte Domains eintragen) und den
+Einbau-Code übernehmen, dann:
 
 ```html
 <script src="https://my.accountdesk.de/widget/accountdesk-widget.js" defer></script>
@@ -97,7 +98,7 @@ Fehler nutzt denselben Schlüssel, solange der Inhalt gleich bleibt.
 | `primary-color-hover` | wie primary | Hover-Farbe |
 | `button-text` / `title` | „Support" / „Kontaktieren Sie uns" | Beschriftungen |
 | `language` | _(leer = automatisch)_ | `de` oder `en`. Ohne Angabe wird die Browsersprache (`navigator.language`) genutzt, mit Fallback auf Deutsch |
-| `show-subject` | `true` | Betreff-Feld anzeigen |
+| `show-subject` | `true` | Betreff-Feld anzeigen. Der Betreff ist optional — bleibt er leer, bildet accountdesk ihn aus dem Anfang der Nachricht |
 | `show-attachments` | `true` | Datei-Upload anzeigen |
 | `screenshot` | `false` | „Bildschirmfoto aufnehmen"-Knopf (nur auf Browsern mit Screen-Capture-API; auf Mobilgeräten automatisch ausgeblendet) |
 | `show-email` / `show-name` | `true` | Felder ausblenden (nur sinnvoll mit `prefill-*`) |

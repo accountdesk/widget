@@ -169,11 +169,11 @@ export function onPrimary(primary: string): string {
  * gegen Weiss erreicht ist. Der Farbton bleibt erhalten, nur die Helligkeit
  * sinkt — eine blaue Marke bleibt blau.
  */
-export function primaryText(primary: string): string {
+export function primaryText(primary: string, minRatio = 4.5): string {
   const rgb = parseHex(primary)
   if (!rgb) return primary
   let cur = rgb
-  for (let i = 0; i < 20 && contrast(cur, WHITE) < 4.5; i++) {
+  for (let i = 0; i < 20 && contrast(cur, WHITE) < minRatio; i++) {
     cur = cur.map((c) => Math.round(c * 0.9)) as [number, number, number]
   }
   return '#' + cur.map((c) => c.toString(16).padStart(2, '0')).join('')
@@ -353,6 +353,11 @@ export class AccountdeskWidget extends HTMLElement {
   private strings: I18nStrings = STRINGS.de
   private container!: HTMLDivElement
   private escKeyHandler: ((e: KeyboardEvent) => void) | null = null
+  // Element, das vor dem Öffnen im Modus `modal` den Fokus hatte — bekommt ihn beim Schließen zurück.
+  private returnFocus: HTMLElement | null = null
+  // Fokus nach dem nächsten render() ins neue Fenster setzen (nur nach einem
+  // Wechsel der Ansicht, nicht bei jedem Neuzeichnen).
+  private focusAfterRender = false
   // Guard gegen Doppelklick auf den Bildschirmfoto-Knopf; bewusst kein State
   // (ein Re-Render während der Freigabe-Dialog offen ist wäre kontraproduktiv).
   private captureBusy = false
@@ -473,6 +478,8 @@ export class AccountdeskWidget extends HTMLElement {
     // auf der Flaeche und die Farbe selbst als Linktext liegen dann unter 4,5:1.
     h.style.setProperty('--ad-on-primary', onPrimary(this.config.primaryColor))
     h.style.setProperty('--ad-primary-text', primaryText(this.config.primaryColor))
+    // Fokusring als Grenze eines Bedienelements: 3:1 gegen Weiss (WCAG 1.4.11).
+    h.style.setProperty('--ad-focus', primaryText(this.config.primaryColor, 3))
     h.style.setProperty('--ad-z', String(this.config.zIndex))
     h.style.setProperty('--ad-offset-x', this.config.offsetX)
     h.style.setProperty('--ad-offset-y', this.config.offsetY)
@@ -485,6 +492,7 @@ export class AccountdeskWidget extends HTMLElement {
 
   /** Öffnet das Formular. Im Modal-Modus erscheint das zentrierte Overlay. */
   open() {
+    this.rememberFocus()
     if (!this.state.email && this.config.prefillEmail) this.state.email = this.config.prefillEmail
     if (!this.state.name && this.config.prefillName) this.state.name = this.config.prefillName
     this.setView('form')
@@ -493,6 +501,61 @@ export class AccountdeskWidget extends HTMLElement {
   /** Schließt das Widget zurück in seinen Ruhezustand (Modal → unsichtbar). */
   close() {
     this.setView(this.idleView())
+    this.restoreFocus()
+  }
+
+  private rememberFocus() {
+    const active = document.activeElement
+    this.returnFocus =
+      active instanceof HTMLElement && active !== document.body && active !== this ? active : null
+  }
+
+  /**
+   * Nach dem Schließen nicht auf `body` landen: im Modus `floating` auf den
+   * Startknopf, im Modus `modal` auf das Element, das beim Öffnen aktiv war.
+   */
+  private restoreFocus() {
+    if (this.config.mode === 'floating') {
+      this.root.querySelector<HTMLElement>('.acd-button')?.focus()
+    } else if (this.config.mode === 'modal') {
+      const target = this.returnFocus
+      this.returnFocus = null
+      if (target?.isConnected) target.focus()
+    }
+  }
+
+  /** Bedienbare Elemente im offenen Fenster, in Tab-Reihenfolge. */
+  private focusables(panel: HTMLElement): HTMLElement[] {
+    return Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]):not([type="file"]), textarea:not([disabled]), a[href], [tabindex="0"]',
+      ),
+    ).filter((el) => el.getClientRects().length > 0)
+  }
+
+  /**
+   * Fokusfalle: Tab und Umschalt+Tab bleiben im offenen Fenster (nach „Absenden“
+   * geht es zurück auf das erste Feld), statt auf die Seite dahinter zu springen.
+   */
+  private trapFocus(e: KeyboardEvent, panel: HTMLElement) {
+    if (e.key !== 'Tab') return
+    const items = this.focusables(panel)
+    if (items.length === 0) {
+      e.preventDefault()
+      panel.focus()
+      return
+    }
+    const first = items[0]
+    const last = items[items.length - 1]
+    const active = this.root.activeElement
+    const inside = active instanceof HTMLElement && items.includes(active)
+    if (e.shiftKey && (active === first || !inside)) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && (active === last || !inside)) {
+      e.preventDefault()
+      first.focus()
+    }
   }
 
   /** Ruhe-View je nach Modus: inline bleibt am Formular, modal wird unsichtbar. */
@@ -524,6 +587,7 @@ export class AccountdeskWidget extends HTMLElement {
       classes.push(this.config.position === 'bottom-left' ? 'acd-bottom-left' : 'acd-bottom-right')
     const s = this.strings
     const st = this.state
+    const panelAttrs = this.panelAttrs()
     // 'hidden' wird oben abgefangen; Default '' hält tsc bei der View-Union zufrieden.
     let html = ''
 
@@ -536,13 +600,13 @@ export class AccountdeskWidget extends HTMLElement {
         html = this.renderForm()
         break
       case 'loading':
-        html = `<div class="acd-panel"><div class="acd-loading">
-          <div class="acd-spinner"></div><div class="acd-loading-text">${s.sending}</div></div></div>`
+        html = `<div class="acd-panel"${panelAttrs} aria-busy="true"><div class="acd-loading">
+          <div class="acd-spinner"></div><div class="acd-loading-text" role="status">${s.sending}</div></div></div>`
         break
       case 'success': {
         const tid = st.ticketId ? ` (#${esc(String(st.ticketId))})` : ''
         const closeLabel = isInline ? s.newMessage : s.close
-        html = `<div class="acd-panel"><div class="acd-result">
+        html = `<div class="acd-panel"${panelAttrs}><div class="acd-result" role="status">
           <div class="acd-result-icon acd-icon-success">${ICON_CHECK}</div>
           <div class="acd-result-title">${s.successTitle}</div>
           <div class="acd-result-text">${s.successMessage}${tid}</div>
@@ -551,7 +615,7 @@ export class AccountdeskWidget extends HTMLElement {
         break
       }
       case 'error':
-        html = `<div class="acd-panel"><div class="acd-result">
+        html = `<div class="acd-panel"${panelAttrs}><div class="acd-result" role="alert">
           <div class="acd-result-icon acd-icon-error">${ICON_ERROR}</div>
           <div class="acd-result-title">${s.errorTitle}</div>
           <div class="acd-result-text">${esc(st.errorMessage)}</div>
@@ -564,13 +628,26 @@ export class AccountdeskWidget extends HTMLElement {
     this.bindEvents()
   }
 
+  /**
+   * Fenster (außer inline) als modaler Dialog; tabindex=-1, damit es selbst den
+   * Fokus halten kann, solange es nichts Bedienbares enthält (Senden läuft).
+   */
+  private panelAttrs(): string {
+    const label = esc(this.config.title || this.strings.title)
+    if (this.config.mode === 'inline') return ` role="form" aria-label="${label}"`
+    return ` role="dialog" aria-modal="true" aria-label="${label}" tabindex="-1"`
+  }
+
   private renderForm(): string {
     const s = this.strings
     const st = this.state
     const cfg = this.config
     const err = (f: string) =>
-      st.errors[f] ? `<div class="acd-error-text">${st.errors[f]}</div>` : ''
+      st.errors[f] ? `<div class="acd-error-text" id="acd-err-${f}">${st.errors[f]}</div>` : ''
     const cls = (f: string) => (st.errors[f] ? ' acd-has-error' : '')
+    // Fehler am Feld auch für Screenreader (WCAG 3.3.1): Feld als ungültig markieren und mit der Meldung verbinden
+    const aria = (f: string) =>
+      st.errors[f] ? ` aria-invalid="true" aria-describedby="acd-err-${f}"` : ''
 
     // show-email/show-name=false blendet die Felder nur aus, wenn ein gültiger
     // Prefill-Wert existiert — sonst wäre das Pflichtfeld unausfüllbar.
@@ -583,7 +660,7 @@ export class AccountdeskWidget extends HTMLElement {
       <div class="acd-field">
         <label class="acd-label" for="acd-email">${s.labelEmail} *</label>
         <input class="acd-input${cls('email')}" id="acd-email" type="email"
-          placeholder="${s.placeholderEmail}" value="${esc(st.email)}" data-field="email">
+          placeholder="${s.placeholderEmail}" value="${esc(st.email)}" data-field="email"${aria('email')}>
         ${err('email')}
       </div>`
     }
@@ -592,7 +669,7 @@ export class AccountdeskWidget extends HTMLElement {
       <div class="acd-field">
         <label class="acd-label" for="acd-name">${s.labelName} *</label>
         <input class="acd-input${cls('name')}" id="acd-name" type="text"
-          placeholder="${s.placeholderName}" value="${esc(st.name)}" data-field="name">
+          placeholder="${s.placeholderName}" value="${esc(st.name)}" data-field="name"${aria('name')}>
         ${err('name')}
       </div>`
     }
@@ -602,7 +679,7 @@ export class AccountdeskWidget extends HTMLElement {
       <div class="acd-field">
         <label class="acd-label" for="acd-subject">${s.labelSubject}</label>
         <input class="acd-input${cls('subject')}" id="acd-subject" type="text"
-          placeholder="${s.placeholderSubject}" value="${esc(st.subject)}" data-field="subject">
+          placeholder="${s.placeholderSubject}" value="${esc(st.subject)}" data-field="subject"${aria('subject')}>
         ${err('subject')}
       </div>`
     }
@@ -611,7 +688,7 @@ export class AccountdeskWidget extends HTMLElement {
       <div class="acd-field">
         <label class="acd-label" for="acd-message">${s.labelMessage} *</label>
         <textarea class="acd-textarea${cls('message')}" id="acd-message"
-          placeholder="${s.placeholderMessage}" data-field="message">${esc(st.message)}</textarea>
+          placeholder="${s.placeholderMessage}" data-field="message"${aria('message')}>${esc(st.message)}</textarea>
         ${err('message')}
       </div>`
 
@@ -654,7 +731,7 @@ export class AccountdeskWidget extends HTMLElement {
         .join('')
       const dropzone = cfg.showAttachments
         ? `
-        <div class="acd-dropzone" id="acd-dropzone">
+        <div class="acd-dropzone" id="acd-dropzone" role="button" tabindex="0">
           <div class="acd-dropzone-text">${s.dragDrop} ${s.dragDropOr}
             <span class="acd-browse-link">${s.browse}</span></div>
           <input class="acd-file-input" id="acd-file-input" type="file" multiple
@@ -689,7 +766,7 @@ export class AccountdeskWidget extends HTMLElement {
       : `<button class="acd-btn acd-btn-secondary" type="button" data-action="cancel">${s.cancel}</button>`
 
     return `
-    <div class="acd-panel" role="${isInline ? 'form' : 'dialog'}" aria-label="${esc(cfg.title || s.title)}">
+    <div class="acd-panel"${this.panelAttrs()}>
       ${header}
       <div class="acd-form">${fields}</div>
       <div class="acd-form-footer">
@@ -706,7 +783,7 @@ export class AccountdeskWidget extends HTMLElement {
     const idle: WidgetView = this.idleView()
 
     // Open form
-    w.querySelector('.acd-button')?.addEventListener('click', () => this.setView('form'))
+    w.querySelector('.acd-button')?.addEventListener('click', () => this.open())
 
     // Modal: Klick auf den Backdrop (außerhalb des Panels) schließt.
     if (this.config.mode === 'modal') {
@@ -716,8 +793,8 @@ export class AccountdeskWidget extends HTMLElement {
     }
 
     // Close / Cancel
-    w.querySelector('.acd-close-btn')?.addEventListener('click', () => this.setView(idle))
-    w.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.setView(idle))
+    w.querySelector('.acd-close-btn')?.addEventListener('click', () => this.close())
+    w.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.close())
 
     // Submit
     w.querySelector('[data-action="submit"]')?.addEventListener('click', () => this.handleSubmit())
@@ -738,6 +815,8 @@ export class AccountdeskWidget extends HTMLElement {
           delete newErr[f]
           this.state.errors = newErr
           el.classList.remove('acd-has-error')
+          el.removeAttribute('aria-invalid')
+          el.removeAttribute('aria-describedby')
           el.parentElement?.querySelector('.acd-error-text')?.remove()
         }
         if (this.config.suggestArticles && (f === 'subject' || f === 'message')) {
@@ -751,6 +830,12 @@ export class AccountdeskWidget extends HTMLElement {
     const fileInput = w.querySelector<HTMLInputElement>('#acd-file-input')
     if (dropzone && fileInput) {
       dropzone.addEventListener('click', () => fileInput.click())
+      dropzone.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          fileInput.click()
+        }
+      })
       dropzone.addEventListener('dragover', (e: Event) => {
         e.preventDefault()
         dropzone.classList.add('acd-dragover')
@@ -792,6 +877,9 @@ export class AccountdeskWidget extends HTMLElement {
         if (e.key === 'Escape' && !this.captureBusy) this.close()
       }
       document.addEventListener('keydown', this.escKeyHandler)
+
+      const panel = w.querySelector<HTMLElement>('.acd-panel')
+      if (panel) panel.addEventListener('keydown', (e: KeyboardEvent) => this.trapFocus(e, panel))
     }
 
     // Focus first input when form opens (Textarea als Fallback, falls
@@ -801,12 +889,20 @@ export class AccountdeskWidget extends HTMLElement {
         () => this.root.querySelector<HTMLInputElement>('.acd-input, .acd-textarea')?.focus(),
         50,
       )
+    } else if (this.focusAfterRender && this.state.view !== 'button') {
+      // Senden läuft / Ergebnis: Fokus ins neue Fenster statt auf `body` der Seite.
+      const target =
+        w.querySelector<HTMLElement>('.acd-result [data-action]') ??
+        w.querySelector<HTMLElement>('.acd-panel')
+      target?.focus()
     }
+    this.focusAfterRender = false
   }
 
   // ---- Actions ----
 
   private setView(view: WidgetView) {
+    this.focusAfterRender = view !== this.state.view
     this.state = { ...this.state, view, errors: {} }
     this.render()
   }
@@ -830,6 +926,7 @@ export class AccountdeskWidget extends HTMLElement {
       suggestDebounceTimer: null,
     }
     this.render()
+    this.restoreFocus()
   }
 
   // ---- Article suggestions (live during typing) ----
@@ -1036,7 +1133,6 @@ export class AccountdeskWidget extends HTMLElement {
     if (!st.email.trim()) errors.email = s.errorRequired
     else if (!EMAIL_RE.test(st.email.trim())) errors.email = s.errorEmail
     if (!st.name.trim()) errors.name = s.errorRequired
-    if (this.config.showSubject && !st.subject.trim()) errors.subject = s.errorRequired
     if (!st.message.trim()) errors.message = s.errorRequired
     else if (st.message.trim().length < 10) errors.message = s.errorMinLength
 
@@ -1049,6 +1145,7 @@ export class AccountdeskWidget extends HTMLElement {
     }
 
     this.state = { ...st, view: 'loading', errors: {} }
+    this.focusAfterRender = true
     this.render()
 
     const payload: SubmitPayload = {
@@ -1103,6 +1200,7 @@ export class AccountdeskWidget extends HTMLElement {
       }
     }
 
+    this.focusAfterRender = true
     this.render()
   }
 }
