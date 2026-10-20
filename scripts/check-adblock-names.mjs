@@ -6,8 +6,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 // ad- als Bezeichner, auch als Selektor (.ad-, #ad-) und CSS-Variable (--ad-); nicht in Woertern
-// (load-), Pfaden (/ad-) oder Hostnamen (www.ad-)
-const AD_DASH = /(?<![\w/.\-])ad-[\w$]|(?<![\w])[.#]ad-[\w$]|(?<![\w-])--ad-[\w$]/;
+// (load-), Pfaden (/ad-) oder Hostnamen (www.ad-); Element-Selektoren wie header.ad-top zaehlen
+const AD_DASH = /(?<![\w/.\-])ad-[\w$]|[.#]ad-[\w$]|(?<![\w-])--ad-[\w$]/;
 const AD_UNDERSCORE = /(?:class(?:Name)?\s*=\s*["'`][^"'`]*\bad_|\bid\s*=\s*["'`]ad_|[.#]ad_[\w-]*\s*[{,:])/;
 
 const files = [];
