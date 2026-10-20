@@ -10,6 +10,7 @@ import type {
   SuggestResponse,
 } from './types'
 import CSS from './widget.css?inline'
+import { acceptAttr, checkApiUrl, esc } from './safety'
 
 // ============================================
 // I18N STRINGS (embedded)
@@ -52,6 +53,8 @@ const STRINGS: Record<string, I18nStrings> = {
     screenshotCapture: 'Bildschirmfoto aufnehmen',
     screenshotFileName: 'bildschirmfoto',
     errorScreenshot: 'Bildschirmfoto konnte nicht erstellt werden',
+    errorConfig:
+      'Das Formular ist auf dieser Website nicht richtig eingerichtet. Bitte wenden Sie sich an den Betreiber der Website.',
   },
   en: {
     buttonText: 'Support',
@@ -89,6 +92,8 @@ const STRINGS: Record<string, I18nStrings> = {
     screenshotCapture: 'Take a screenshot',
     screenshotFileName: 'screenshot',
     errorScreenshot: 'The screenshot could not be captured',
+    errorConfig:
+      'This form is not set up correctly on this website. Please contact the website operator.',
   },
 }
 
@@ -115,17 +120,41 @@ const ICON_SCREENSHOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2
 // STYLES
 // ============================================
 
+// Constructable Stylesheet (adoptedStyleSheets): Styles kommen ohne <style>-Element
+// in den Shadow Root. Damit braucht eine strenge Content-Security-Policy der
+// einbindenden Seite kein `style-src 'unsafe-inline'`. Ein Blatt für alle
+// Widget-Instanzen. Browser ohne adoptedStyleSheets (Safari < 16.4,
+// Firefox < 101, Chrome < 73) bekommen weiter ein <style>-Element — dort braucht
+// eine strenge CSP dann doch 'unsafe-inline'.
+let sharedSheet: CSSStyleSheet | null = null
+
+function supportsAdoptedSheets(root: ShadowRoot): boolean {
+  return (
+    'adoptedStyleSheets' in root &&
+    typeof CSSStyleSheet !== 'undefined' &&
+    'replaceSync' in CSSStyleSheet.prototype
+  )
+}
+
+function applyStyles(root: ShadowRoot): void {
+  if (supportsAdoptedSheets(root)) {
+    if (!sharedSheet) {
+      sharedSheet = new CSSStyleSheet()
+      sharedSheet.replaceSync(CSS)
+    }
+    if (!root.adoptedStyleSheets.includes(sharedSheet)) {
+      root.adoptedStyleSheets = [...root.adoptedStyleSheets, sharedSheet]
+    }
+    return
+  }
+  const style = document.createElement('style')
+  style.textContent = CSS
+  root.appendChild(style)
+}
+
 // ============================================
 // HELPERS
 // ============================================
-
-function esc(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
 
 // ---- Kontrast (WCAG AA) --------------------------------------------------
 // Das Widget laeuft mit der Markenfarbe des Kunden. Helle Farben reissen als
@@ -366,6 +395,8 @@ export class AccountdeskWidget extends HTMLElement {
   // so entsteht bei schlechtem Netz kein zweites Ticket. Nach Erfolg oder
   // endgültigem Fehler verworfen.
   private submitKey: { body: string; key: string } | null = null
+  // Zuletzt bemängelte api-url — die Konsolen-Warnung erscheint je Wert nur einmal.
+  private warnedApiUrl: string | null = null
 
   static get observedAttributes() {
     return [
@@ -411,9 +442,7 @@ export class AccountdeskWidget extends HTMLElement {
     if (this.config.prefillEmail) this.state.email = this.config.prefillEmail
     if (this.config.prefillName) this.state.name = this.config.prefillName
 
-    const style = document.createElement('style')
-    style.textContent = CSS
-    this.root.appendChild(style)
+    applyStyles(this.root)
 
     this.container = document.createElement('div')
     this.root.appendChild(this.container)
@@ -433,12 +462,29 @@ export class AccountdeskWidget extends HTMLElement {
     this.render()
   }
 
+  /**
+   * `api-url` prüfen (nur https, http nur für localhost/127.0.0.1). Bei einer
+   * unzulässigen Adresse sendet das Widget nichts und warnt einmal je Wert in
+   * der Konsole — so sieht der Betreiber der Seite den Fehler beim Einbau.
+   */
+  private resolveApiUrl(raw: string): string {
+    const checked = checkApiUrl(raw, document.baseURI)
+    if (checked === null && raw !== this.warnedApiUrl) {
+      this.warnedApiUrl = raw
+      console.warn(
+        `[accountdesk-widget] api-url "${raw}" wird nicht verwendet: erlaubt ist nur https:// ` +
+          '(für Entwicklung auch http://localhost und http://127.0.0.1). Das Widget sendet nichts.',
+      )
+    }
+    return checked ?? ''
+  }
+
   private readConfig(): WidgetConfig {
     const a = (name: string, def: string) => this.getAttribute(name) ?? def
     const primary = a('primary-color', '#1976D2')
     return {
       token: a('token', ''),
-      apiUrl: a('api-url', 'https://my.accountdesk.de/api'),
+      apiUrl: this.resolveApiUrl(a('api-url', 'https://my.accountdesk.de/api')),
       language: resolveLanguage(a('language', '')),
       primaryColor: primary,
       primaryColorHover: a('primary-color-hover', primary),
@@ -735,7 +781,7 @@ export class AccountdeskWidget extends HTMLElement {
           <div class="acd-dropzone-text">${s.dragDrop} ${s.dragDropOr}
             <span class="acd-browse-link">${s.browse}</span></div>
           <input class="acd-file-input" id="acd-file-input" type="file" multiple
-            accept="${cfg.allowedFileTypes.join(',')}">
+            accept="${acceptAttr(cfg.allowedFileTypes)}">
         </div>`
         : ''
       const screenshotBtn = showScreenshot
@@ -953,6 +999,8 @@ export class AccountdeskWidget extends HTMLElement {
   private async fetchSuggestions(query: string) {
     const reqId = ++this.state.suggestRequestId
     let results: SuggestResult[] = []
+    // Unzulässige api-url: nichts senden (Warnung kam schon aus readConfig).
+    if (!this.config.apiUrl) return
     try {
       const res = await fetch(`${this.config.apiUrl}/v1/widget/suggest`, {
         method: 'POST',
@@ -1144,6 +1192,14 @@ export class AccountdeskWidget extends HTMLElement {
       return
     }
 
+    // Unzulässige api-url: nichts senden, sondern einen verständlichen Hinweis zeigen.
+    if (!this.config.apiUrl) {
+      this.state = { ...st, view: 'error', errors: {}, errorMessage: s.errorConfig }
+      this.focusAfterRender = true
+      this.render()
+      return
+    }
+
     this.state = { ...st, view: 'loading', errors: {} }
     this.focusAfterRender = true
     this.render()
@@ -1163,7 +1219,7 @@ export class AccountdeskWidget extends HTMLElement {
     }
 
     try {
-      const url = `${this.config.apiUrl.replace(/\/$/, '')}/v1/widget/ticket`
+      const url = `${this.config.apiUrl}/v1/widget/ticket`
       const body = JSON.stringify(payload)
       if (this.submitKey?.body !== body) {
         this.submitKey = { body, key: createIdempotencyKey() }

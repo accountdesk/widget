@@ -41,6 +41,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
+      - run: npm test
       - run: npm run build
 
       # Mit Trusted Publishing bleibt NPM_TOKEN leer und npm nutzt OIDC.

@@ -1,5 +1,6 @@
 export interface WidgetConfig {
   token: string
+  /** Geprüfte API-Adresse (siehe checkApiUrl); leer, wenn `api-url` nicht zulässig ist. */
   apiUrl: string
   language: string
   primaryColor: string
@@ -120,4 +121,5 @@ export interface I18nStrings {
   screenshotCapture: string
   screenshotFileName: string
   errorScreenshot: string
+  errorConfig: string
 }
