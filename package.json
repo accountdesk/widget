@@ -30,10 +30,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "oxlint src",
+    "check:adblock": "node scripts/check-adblock-names.mjs",
     "format": "oxfmt src vite.config.ts",
     "format:check": "oxfmt --check src vite.config.ts",
     "preview": "vite preview",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run check:adblock && npm run build"
   },
   "devDependencies": {
     "oxfmt": "^0.58.0",
