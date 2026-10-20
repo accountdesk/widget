@@ -126,6 +126,38 @@ npm run dev      # Demo-Seite mit Live-Vorschau auf http://localhost:5180
 npm run build    # tsc + Vite → dist/accountdesk-widget.js
 ```
 
+## Release
+
+Veröffentlicht wird nur aus GitHub Actions (`.github/workflows/release.yml`), mit npm-Provenance:
+
+```bash
+npm version patch|minor|major   # bumpt package.json, Commit + Tag vX.Y.Z
+git push --follow-tags          # der Tag startet den Release-Workflow
+```
+
+Der Workflow prüft, dass Tag und `package.json` übereinstimmen, baut (`lint`, `format:check`, `build`) und ruft
+`npm publish --provenance --access public` auf. **Nicht mehr lokal `npm publish` ausführen.**
+
+**Einmalig auf npmjs.com einrichten (Trusted Publishing, kein Token):**
+
+1. Auf npmjs.com als Inhaber des Pakets `@accountdesk/widget` anmelden → Paket → **Settings**.
+2. Unter **Trusted Publisher** „GitHub Actions“ wählen und eintragen: Organization/User `accountdesk`,
+   Repository `widget`, Workflow-Datei `release.yml`, Environment `npm`.
+3. Speichern. Optional danach unter **Publishing access** „Require two-factor authentication and disallow
+   tokens“ wählen – dann kann nur noch der Workflow veröffentlichen.
+4. Im GitHub-Repo unter **Settings → Environments** das Environment `npm` anlegen (optional mit Schutzregel,
+   z. B. nur Tags `v*`).
+
+Rückfall ohne Trusted Publishing: auf npmjs.com einen *Granular Access Token* mit Schreibrecht nur auf
+`@accountdesk/widget` erzeugen und im GitHub-Repo als Secret `NPM_TOKEN` (Environment `npm`) hinterlegen.
+
+## Sicherheit und unterstützte Versionen
+
+Sicherheitslücken bitte nach <https://www.accountdesk.de/sicherheit> melden, nicht als öffentliches Issue.
+Das Widget erhält Sicherheitsupdates, solange es angeboten wird, mindestens aber 5 Jahre ab Erscheinen einer
+Hauptversion; Sicherheitskorrekturen erscheinen in der aktuellen Hauptversion, ältere Hauptversionen erhalten
+noch 18 Monate Korrekturen. Details: [SECURITY.md](SECURITY.md).
+
 ## Lizenz
 
 [MIT](LICENSE) — Verbesserungen, die für alle nützlich sind, nehmen wir gern
