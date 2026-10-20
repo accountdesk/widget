@@ -90,7 +90,7 @@ Fehler nutzt denselben Schlüssel, solange der Inhalt gleich bleibt.
 | Attribut | Standard | Wirkung |
 |---|---|---|
 | `token` | — | **Pflicht.** Widget-Token (JWT) |
-| `api-url` | `https://my.accountdesk.de/api` | API-Basis-URL |
+| `api-url` | `https://my.accountdesk.de/api` | API-Basis-URL. Nur `https://` (für Entwicklung auch `http://localhost` und `http://127.0.0.1`); bei anderen Adressen sendet das Widget nichts und warnt in der Browser-Konsole |
 | `mode` | `floating` | `floating`, `inline` oder `modal` (per `open()`/`close()`) |
 | `position` | `bottom-right` | `bottom-right` oder `bottom-left` (nur `floating`) |
 | `offset-x` / `offset-y` | `20px` | Abstand des Buttons vom Seitenrand |
@@ -124,6 +124,7 @@ document.querySelector("accountdesk-widget").close() // wieder schließen
 npm install
 npm run dev      # Demo-Seite mit Live-Vorschau auf http://localhost:5180
 npm run build    # tsc + Vite → dist/accountdesk-widget.js
+npm test         # Unit-Tests (node --test, ab Node 22.18 ohne Zusatzoptionen)
 ```
 
 ## Release
@@ -136,7 +137,7 @@ git push --follow-tags          # der Tag startet den Release-Workflow
 ```
 
 Der Workflow prüft, dass Tag und `package.json` übereinstimmen, baut (`lint`, `format:check`, `build`) und ruft
-`npm publish --provenance --access public` auf. **Nicht mehr lokal `npm publish` ausführen.**
+`npm publish --provenance --access public` auf. Danach legt er das GitHub-Release mit SBOM und Prüfbericht an. **Nicht mehr lokal `npm publish` ausführen.**
 
 **Einmalig auf npmjs.com einrichten (Trusted Publishing, kein Token):**
 
@@ -166,8 +167,15 @@ noch 18 Monate Korrekturen. Details: [SECURITY.md](SECURITY.md).
 - **Version festlegen.** Beim Laden über ein npm-CDN eine genaue Version angeben (`@1.2.1` statt `@1`) und ein
   `integrity`-Attribut (Subresource Integrity) setzen – oder die Datei selbst hosten (siehe oben).
 - **Content-Security-Policy** eurer Seite: `script-src` muss den Ort der Script-Datei erlauben, `connect-src`
-  die API (`https://my.accountdesk.de`). Das Widget legt seine Styles als `<style>` im Shadow DOM an – mit
-  einer strengen CSP braucht `style-src` dafür `'unsafe-inline'`.
+  die API (`https://my.accountdesk.de`). `'unsafe-inline'` ist **nicht** nötig: Ab der nächsten Version nach 1.2.1 hängt das
+  Widget seine Styles als Constructable Stylesheet (`adoptedStyleSheets`) an seinen Shadow DOM, und das Markup
+  enthält keine `style`-Attribute. Getestet mit
+  `default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://my.accountdesk.de`.
+  Nur Browser ohne `adoptedStyleSheets` (Safari vor 16.4, Firefox vor 101, Chrome vor 73) bekommen die Styles
+  weiterhin als `<style>`-Element – dort bleibt das Widget bei strenger CSP ungestylt, funktioniert aber.
+- **API-Adresse**: `api-url` nimmt nur `https://` an (Ausnahme für Entwicklung: `http://localhost`,
+  `http://127.0.0.1`). Eine andere Adresse verwendet das Widget nicht – es sendet dann weder Token noch
+  Formularinhalte, zeigt Besucher:innen einen Hinweis und schreibt eine Warnung in die Browser-Konsole.
 - **Daten**: Das Widget schickt nur, was Besucher:innen ins Formular eingeben (E-Mail, Name, Betreff,
   Nachricht, Anhänge) sowie eure Vorbelegungen (`prefill-*`, `external-customer-nr`, `custom-fields`) per
   HTTPS an accountdesk. Mit `suggest-articles` geht der eingegebene Text schon beim Tippen an die
@@ -176,14 +184,43 @@ noch 18 Monate Korrekturen. Details: [SECURITY.md](SECURITY.md).
 - **Aktuell halten**: Neue Versionen stehen auf npm und unter
   [Releases](https://github.com/accountdesk/widget/releases); wer `my.accountdesk.de/widget/…` einbindet,
   bekommt Korrekturen automatisch.
+- **Sicherheitsupdates** veröffentlichen wir als
+  [GitHub Security Advisories](https://github.com/accountdesk/widget/security/advisories) dieses Repos.
+  Benachrichtigt werdet ihr über **Watch → Custom → Security alerts** oben auf der Repo-Seite (bei
+  Installation über npm meldet zusätzlich `npm audit` betroffene Versionen).
+
+### Widget entfernen
+
+1. Das Element `<accountdesk-widget …>` und das zugehörige `<script>` (bzw. den `import "@accountdesk/widget"`
+   und das npm-Paket) von der Website entfernen. Das Widget speichert nichts im Browser der Besucher:innen,
+   es bleibt nichts zurück.
+2. In accountdesk unter Einstellungen → Integrationen das Kontaktformular löschen bzw. den Widget-Token
+   widerrufen. Danach nimmt accountdesk mit diesem Token keine Anfragen mehr an – auch nicht von Kopien
+   des Einbau-Codes, die noch irgendwo stehen.
+3. Bereits über das Widget entstandene Tickets bleiben im Arbeitsbereich erhalten und werden dort wie alle
+   anderen Tickets verwaltet bzw. gelöscht.
 
 ### Prüfungen und Herkunft
 
-Jeder Pull Request durchläuft Lint, Formatierung, Build, `npm audit`, Gitleaks (Geheimnisse), Semgrep und
+Jeder Pull Request durchläuft Lint, Formatierung, Unit-Tests, Build, `npm audit`, Gitleaks (Geheimnisse), Semgrep und
 CodeQL (`.github/workflows/`). Ab der ersten Version aus dem Release-Workflow (nach 1.1.0) trägt jede Version
 auf npm eine Provenance-Angabe (`npm audit signatures`), und zu jedem Release hängt eine Stückliste im Format
 CycloneDX (`sbom.cdx.json`: Laufzeit – das Widget hat keine Abhängigkeiten; `sbom-build.cdx.json`:
-Build-Werkzeuge).
+Build-Werkzeuge). Außerdem hängt am Release ein Prüfbericht (`pruefbericht-<version>.md`): Commit,
+Workflow-Lauf, Ergebnisse von Lint, Formatierung, Tests, Build, `npm audit` und `npm audit signatures`, Verweis
+auf den checks-Lauf des Commits (Gitleaks, Semgrep) sowie SHA-256 der ausgelieferten Dateien und des npm-Pakets.
+Erzeugt wird er von `scripts/pruefbericht.mjs`.
+
+## Hersteller und Kontakt
+
+AccountDesk GmbH, Nordstraße 2, 24937 Flensburg, Deutschland – <https://www.accountdesk.de>
+
+- Sicherheitslücken: <security@accountdesk.de> bzw. nach <https://www.accountdesk.de/sicherheit>
+  (siehe [SECURITY.md](SECURITY.md))
+- Alles andere: <support@accountdesk.de> oder ein [Issue](https://github.com/accountdesk/widget/issues)
+
+Die EU-Konformitätserklärung und Angaben zur CE-Kennzeichnung nach dem Cyber Resilience Act folgen vor dem
+11.12.2027 an dieser Stelle und auf der [npm-Seite](https://www.npmjs.com/package/@accountdesk/widget).
 
 ## Lizenz
 

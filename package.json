@@ -3,11 +3,19 @@
   "version": "1.2.1",
   "description": "Support-Widget von accountdesk: Kontaktformular als dependency-freie Web Component (Shadow DOM) — Tickets, Anhänge, Bildschirmfoto-Aufnahme, Wiki-Artikelvorschläge.",
   "license": "MIT",
+  "author": {
+    "name": "AccountDesk GmbH",
+    "email": "support@accountdesk.de",
+    "url": "https://www.accountdesk.de"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/accountdesk/widget.git"
   },
   "homepage": "https://github.com/accountdesk/widget#readme",
+  "bugs": {
+    "url": "https://github.com/accountdesk/widget/issues"
+  },
   "keywords": [
     "accountdesk",
     "support",
@@ -29,11 +37,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "oxlint src",
-    "format": "oxfmt src vite.config.ts",
-    "format:check": "oxfmt --check src vite.config.ts",
+    "lint": "oxlint src test scripts",
+    "format": "oxfmt src test scripts vite.config.ts",
+    "format:check": "oxfmt --check src test scripts vite.config.ts",
     "preview": "vite preview",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "node --test test/*.test.ts"
   },
   "devDependencies": {
     "oxfmt": "^0.74.0",

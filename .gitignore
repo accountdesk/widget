@@ -1,3 +1,8 @@
 node_modules/
 dist/
 *.log
+audit.json
+signatures.txt
+pack/
+pruefbericht-*.md
+sbom*.cdx.json

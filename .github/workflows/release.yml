@@ -17,6 +17,7 @@ jobs:
     environment: npm
     permissions:
       contents: read
+      actions: read # checks-Lauf zum Commit für den Prüfbericht finden
       id-token: write # OIDC für Trusted Publishing und Provenance
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -39,9 +40,41 @@ jobs:
           fi
 
       - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run build
+      - id: lint
+        run: npm run lint
+      - id: format
+        run: npm run format:check
+      - id: test
+        run: npm test
+      - id: build
+        run: npm run build
+
+      # npm audit: Zusammenfassung für den Prüfbericht, danach dasselbe Gate wie in checks.yml (rot ab high).
+      - name: npm audit (für den Prüfbericht)
+        run: npm audit --json > audit.json || true
+      - name: npm audit (rot ab high)
+        id: audit
+        run: npm audit --audit-level=high
+      - name: npm audit signatures
+        id: signatures
+        run: |
+          set -o pipefail
+          npm audit signatures 2>&1 | tee signatures.txt
+
+      - name: npm-Paket packen (für die Prüfsumme im Prüfbericht)
+        run: |
+          mkdir -p pack
+          npm pack --pack-destination pack
+
+      - name: checks-Lauf zum Commit ermitteln
+        id: checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/checks.yml/runs?head_sha=$GITHUB_SHA&per_page=1" \
+            --jq '.workflow_runs[0] // empty | "\(.html_url) \(.conclusion // .status)"' || true)
+          echo "url=${RUN%% *}" >> "$GITHUB_OUTPUT"
+          if [ -n "$RUN" ]; then echo "conclusion=${RUN#* }" >> "$GITHUB_OUTPUT"; fi
 
       # Mit Trusted Publishing bleibt NPM_TOKEN leer und npm nutzt OIDC.
       # Rückfall ohne Trusted Publishing: Granular Access Token als Secret NPM_TOKEN anlegen.
@@ -51,19 +84,51 @@ jobs:
           npm sbom --sbom-format cyclonedx --omit dev > sbom.cdx.json
           npm sbom --sbom-format cyclonedx > sbom-build.cdx.json
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: sbom
-          path: sbom*.cdx.json
-
       # Mit Trusted Publishing bleibt NPM_TOKEN leer und npm nutzt OIDC.
       # Rückfall ohne Trusted Publishing: Granular Access Token als Secret NPM_TOKEN anlegen.
       - name: Veröffentlichen
+        id: publish
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # GitHub-Release zum Tag mit der SBOM als Anhang. Eigener Job, damit nur er Schreibrechte hat.
+      # Prüfbericht (CRA Anhang VII Nr. 6): Ergebnisse, Prüfsummen, Verweise. Nur ausgewählte Werte
+      # gehen als Umgebungsvariablen an den Generator – keine Secrets.
+      - name: Prüfbericht erzeugen
+        env:
+          VERSION: ${{ github.ref_name }}
+          GIT_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CHECKS_RUN_URL: ${{ steps.checks.outputs.url }}
+          CHECKS_RUN_CONCLUSION: ${{ steps.checks.outputs.conclusion }}
+          STEP_LINT: ${{ steps.lint.outcome }}
+          STEP_FORMAT: ${{ steps.format.outcome }}
+          STEP_TEST: ${{ steps.test.outcome }}
+          STEP_BUILD: ${{ steps.build.outcome }}
+          STEP_AUDIT: ${{ steps.audit.outcome }}
+          STEP_SIGNATURES: ${{ steps.signatures.outcome }}
+          STEP_PUBLISH: ${{ steps.publish.outcome }}
+          AUDIT_JSON: audit.json
+          SIGNATURES_TXT: signatures.txt
+          DIST_DIR: dist
+        run: |
+          VERSION="${VERSION#v}"
+          TARBALL=$(ls pack/*.tgz)
+          NPM_VERSION=$(npm --version)
+          export VERSION TARBALL NPM_VERSION
+          node scripts/pruefbericht.mjs
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-files
+          path: |
+            sbom*.cdx.json
+            pruefbericht-*.md
+
+  # GitHub-Release zum Tag mit SBOM und Prüfbericht als Anhang. Eigener Job, damit nur er Schreibrechte hat.
   github-release:
     needs: publish
     runs-on: ubuntu-latest
@@ -72,15 +137,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: sbom
-      - name: Release anlegen bzw. SBOM anhängen
+          name: release-files
+      - name: Release anlegen bzw. SBOM und Prüfbericht anhängen
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          FILES=(sbom.cdx.json sbom-build.cdx.json pruefbericht-*.md)
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" sbom.cdx.json sbom-build.cdx.json --clobber
+            gh release upload "$GITHUB_REF_NAME" "${FILES[@]}" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" sbom.cdx.json sbom-build.cdx.json \
+            gh release create "$GITHUB_REF_NAME" "${FILES[@]}" \
               --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
           fi

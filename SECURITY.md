@@ -5,6 +5,17 @@
 Bitte melden Sie Sicherheitslücken nicht als öffentliches Issue, sondern nach unserer Richtlinie unter
 <https://www.accountdesk.de/sicherheit> (English: <https://www.accountdesk.de/en/security>).
 
+Alternativ per E-Mail an <security@accountdesk.de>.
+
+## Veröffentlichung von Sicherheitsupdates
+
+Behobene Sicherheitslücken veröffentlichen wir als
+[GitHub Security Advisories](https://github.com/accountdesk/widget/security/advisories) dieses Repos – mit
+betroffenen und korrigierten Versionen und, wo vorhanden, einer CVE-Kennung. Die Advisories fließen in die
+GitHub Advisory Database ein; `npm audit` meldet betroffene Versionen dadurch automatisch. Benachrichtigungen
+lassen sich auf der Repo-Seite über **Watch → Custom → Security alerts** abonnieren. Die korrigierte Version
+erscheint gleichzeitig auf npm und unter [Releases](https://github.com/accountdesk/widget/releases).
+
 ## Unterstützte Versionen
 
 Das Widget erhält Sicherheitsupdates, solange es angeboten wird, mindestens aber 5 Jahre ab Erscheinen einer
