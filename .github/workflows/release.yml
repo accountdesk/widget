@@ -10,12 +10,14 @@ on:
 
 permissions:
   contents: read
-  id-token: write # OIDC für Trusted Publishing und Provenance
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment: npm
+    permissions:
+      contents: read
+      id-token: write # OIDC für Trusted Publishing und Provenance
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -43,7 +45,42 @@ jobs:
 
       # Mit Trusted Publishing bleibt NPM_TOKEN leer und npm nutzt OIDC.
       # Rückfall ohne Trusted Publishing: Granular Access Token als Secret NPM_TOKEN anlegen.
+      # Stückliste (CycloneDX): Laufzeit (das Widget hat keine Abhängigkeiten) und Build-Werkzeuge.
+      - name: SBOM erzeugen
+        run: |
+          npm sbom --sbom-format cyclonedx --omit dev > sbom.cdx.json
+          npm sbom --sbom-format cyclonedx > sbom-build.cdx.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom
+          path: sbom*.cdx.json
+
+      # Mit Trusted Publishing bleibt NPM_TOKEN leer und npm nutzt OIDC.
+      # Rückfall ohne Trusted Publishing: Granular Access Token als Secret NPM_TOKEN anlegen.
       - name: Veröffentlichen
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # GitHub-Release zum Tag mit der SBOM als Anhang. Eigener Job, damit nur er Schreibrechte hat.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sbom
+      - name: Release anlegen bzw. SBOM anhängen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" sbom.cdx.json sbom-build.cdx.json --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" sbom.cdx.json sbom-build.cdx.json \
+              --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+          fi

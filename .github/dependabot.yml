@@ -1,0 +1,20 @@
+# Wöchentliche Update-PRs für npm-Pakete (Build-Werkzeuge) und die gepinnten GitHub Actions.
+# Sicherheitsupdates kommen zusätzlich sofort, wenn „Dependabot security updates“ aktiv ist.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      build-werkzeuge:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]

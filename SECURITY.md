@@ -18,5 +18,7 @@ Weg zu Sicherheitsupdates.
 
 ## Herkunft der Pakete
 
-Jede Version auf npm wird ausschließlich aus GitHub Actions veröffentlicht (`.github/workflows/release.yml`) und
-trägt eine npm-Provenance-Angabe. Sie lässt sich mit `npm audit signatures` prüfen.
+Ab der nächsten Version (nach 1.1.0) wird jede Version auf npm ausschließlich aus GitHub Actions veröffentlicht
+(`.github/workflows/release.yml`) und trägt eine npm-Provenance-Angabe. Sie lässt sich mit `npm audit signatures` prüfen.
+
+Zu jedem Release auf GitHub gehört eine Stückliste (SBOM, CycloneDX) als Anhang.

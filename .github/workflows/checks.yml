@@ -1,0 +1,94 @@
+# Prüfungen für jeden Pull Request und jeden Push auf main:
+#   - build: npm ci, Lint (oxlint), Formatierung (oxfmt), Build (tsc + Vite)
+#   - audit: npm audit, rot ab Schweregrad high (auch Build-Werkzeuge – sie bauen das ausgelieferte Paket)
+#   - gitleaks: Geheimnisse im Git-Verlauf. Im PR nur die neuen Commits, auf main der ganze Verlauf.
+#   - semgrep: statische Analyse. Im PR rot bei neuen Funden der Stufe ERROR, auf main Voll-Scan als Bericht.
+# Werkzeug-Versionen sind fest gepinnt, damit neue Regeln die CI nicht ohne Code-Änderung rot machen.
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run build
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: npm audit (rot ab high)
+        run: npm audit --audit-level=high
+      - name: Signaturen und Herkunft der installierten Pakete
+        run: |
+          npm ci --ignore-scripts
+          npm audit signatures
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Gitleaks installieren
+        run: |
+          GITLEAKS_VERSION=8.30.1
+          GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+          curl -sSfL -o /tmp/gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+      - name: "Scan (Gate: Geheimnisse; --redact schreibt keine Werte ins Log)"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE=$(git merge-base "$BASE_SHA" HEAD)
+            /tmp/gitleaks git --no-banner --redact --log-opts="$BASE..HEAD" --exit-code 1 .
+          else
+            /tmp/gitleaks git --no-banner --redact --exit-code 1 .
+          fi
+
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # --baseline-commit braucht den Vergleichs-Commit
+      - name: Semgrep installieren
+        run: |
+          python3 -m venv /tmp/semgrep
+          /tmp/semgrep/bin/pip install --quiet --no-cache-dir semgrep==1.180.0
+      - name: "Scan (Gate im PR: neue Funde der Stufe ERROR)"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -- --metrics=off --config p/javascript --config p/typescript --config p/security-audit \
+            --exclude node_modules --exclude dist
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE=$(git merge-base "$BASE_SHA" HEAD)
+            echo "::group::Neue Funde seit $BASE (alle Stufen, nur zur Information)"
+            /tmp/semgrep/bin/semgrep scan "$@" --baseline-commit "$BASE" . || true
+            echo "::endgroup::"
+            /tmp/semgrep/bin/semgrep scan "$@" --baseline-commit "$BASE" --severity ERROR --error --quiet .
+          else
+            echo "Voll-Scan als Bericht (blockt nicht)"
+            /tmp/semgrep/bin/semgrep scan "$@" . || true
+          fi
