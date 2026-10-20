@@ -37,9 +37,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "oxlint src test",
-    "format": "oxfmt src test vite.config.ts",
-    "format:check": "oxfmt --check src test vite.config.ts",
+    "lint": "oxlint src test scripts",
+    "format": "oxfmt src test scripts vite.config.ts",
+    "format:check": "oxfmt --check src test scripts vite.config.ts",
     "preview": "vite preview",
     "prepublishOnly": "npm run build",
     "test": "node --test test/*.test.ts"

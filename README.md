@@ -137,7 +137,7 @@ git push --follow-tags          # der Tag startet den Release-Workflow
 ```
 
 Der Workflow prüft, dass Tag und `package.json` übereinstimmen, baut (`lint`, `format:check`, `build`) und ruft
-`npm publish --provenance --access public` auf. **Nicht mehr lokal `npm publish` ausführen.**
+`npm publish --provenance --access public` auf. Danach legt er das GitHub-Release mit SBOM und Prüfbericht an. **Nicht mehr lokal `npm publish` ausführen.**
 
 **Einmalig auf npmjs.com einrichten (Trusted Publishing, kein Token):**
 
@@ -206,7 +206,10 @@ Jeder Pull Request durchläuft Lint, Formatierung, Unit-Tests, Build, `npm audit
 CodeQL (`.github/workflows/`). Ab der ersten Version aus dem Release-Workflow (nach 1.1.0) trägt jede Version
 auf npm eine Provenance-Angabe (`npm audit signatures`), und zu jedem Release hängt eine Stückliste im Format
 CycloneDX (`sbom.cdx.json`: Laufzeit – das Widget hat keine Abhängigkeiten; `sbom-build.cdx.json`:
-Build-Werkzeuge).
+Build-Werkzeuge). Außerdem hängt am Release ein Prüfbericht (`pruefbericht-<version>.md`): Commit,
+Workflow-Lauf, Ergebnisse von Lint, Formatierung, Tests, Build, `npm audit` und `npm audit signatures`, Verweis
+auf den checks-Lauf des Commits (Gitleaks, Semgrep) sowie SHA-256 der ausgelieferten Dateien und des npm-Pakets.
+Erzeugt wird er von `scripts/pruefbericht.mjs`.
 
 ## Hersteller und Kontakt
 
