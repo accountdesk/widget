@@ -5,7 +5,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const AD_DASH = /(?<![\w/.\-])ad-[\w$]/;
+// ad- als Bezeichner, auch als Selektor (.ad-, #ad-) und CSS-Variable (--ad-); nicht in Woertern
+// (load-), Pfaden (/ad-) oder Hostnamen (www.ad-)
+const AD_DASH = /(?<![\w/.\-])ad-[\w$]|(?<![\w])[.#]ad-[\w$]|(?<![\w-])--ad-[\w$]/;
 const AD_UNDERSCORE = /(?:class(?:Name)?\s*=\s*["'`][^"'`]*\bad_|\bid\s*=\s*["'`]ad_|[.#]ad_[\w-]*\s*[{,:])/;
 
 const files = [];
@@ -17,6 +19,7 @@ const walk = (dir) => {
   }
 };
 walk("src");
+// dieses Skript selbst zitiert die EasyList-Regeln und liegt nicht in src/
 for (const extra of ["index.html", "demo.html"]) {
   try {
     statSync(extra);

@@ -471,18 +471,18 @@ export class AccountdeskWidget extends HTMLElement {
 
   private applyProps() {
     const h = this.root.host as HTMLElement
-    h.style.setProperty('--ad-primary', this.config.primaryColor)
-    h.style.setProperty('--ad-primary-hover', this.config.primaryColorHover)
+    h.style.setProperty('--acd-primary', this.config.primaryColor)
+    h.style.setProperty('--acd-primary-hover', this.config.primaryColorHover)
     // Aus der Markenfarbe abgeleitete Kontrastfarben — siehe onPrimary/
     // primaryText. Ohne sie reissen helle Markenfarben WCAG AA: weisse Schrift
     // auf der Flaeche und die Farbe selbst als Linktext liegen dann unter 4,5:1.
-    h.style.setProperty('--ad-on-primary', onPrimary(this.config.primaryColor))
-    h.style.setProperty('--ad-primary-text', primaryText(this.config.primaryColor))
+    h.style.setProperty('--acd-on-primary', onPrimary(this.config.primaryColor))
+    h.style.setProperty('--acd-primary-text', primaryText(this.config.primaryColor))
     // Fokusring als Grenze eines Bedienelements: 3:1 gegen Weiss (WCAG 1.4.11).
-    h.style.setProperty('--ad-focus', primaryText(this.config.primaryColor, 3))
-    h.style.setProperty('--ad-z', String(this.config.zIndex))
-    h.style.setProperty('--ad-offset-x', this.config.offsetX)
-    h.style.setProperty('--ad-offset-y', this.config.offsetY)
+    h.style.setProperty('--acd-focus', primaryText(this.config.primaryColor, 3))
+    h.style.setProperty('--acd-z', String(this.config.zIndex))
+    h.style.setProperty('--acd-offset-x', this.config.offsetX)
+    h.style.setProperty('--acd-offset-y', this.config.offsetY)
     if (this.config.mode === 'inline') h.style.display = 'block'
     // Modal: Host erzeugt keine eigene Box — das fixed Overlay ist sein Child.
     if (this.config.mode === 'modal') h.style.display = 'contents'
