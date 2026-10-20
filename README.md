@@ -126,6 +126,65 @@ npm run dev      # Demo-Seite mit Live-Vorschau auf http://localhost:5180
 npm run build    # tsc + Vite → dist/accountdesk-widget.js
 ```
 
+## Release
+
+Veröffentlicht wird nur aus GitHub Actions (`.github/workflows/release.yml`), mit npm-Provenance:
+
+```bash
+npm version patch|minor|major   # bumpt package.json, Commit + Tag vX.Y.Z
+git push --follow-tags          # der Tag startet den Release-Workflow
+```
+
+Der Workflow prüft, dass Tag und `package.json` übereinstimmen, baut (`lint`, `format:check`, `build`) und ruft
+`npm publish --provenance --access public` auf. **Nicht mehr lokal `npm publish` ausführen.**
+
+**Einmalig auf npmjs.com einrichten (Trusted Publishing, kein Token):**
+
+1. Auf npmjs.com als Inhaber des Pakets `@accountdesk/widget` anmelden → Paket → **Settings**.
+2. Unter **Trusted Publisher** „GitHub Actions“ wählen und eintragen: Organization/User `accountdesk`,
+   Repository `widget`, Workflow-Datei `release.yml`, Environment `npm`.
+3. Speichern. Optional danach unter **Publishing access** „Require two-factor authentication and disallow
+   tokens“ wählen – dann kann nur noch der Workflow veröffentlichen.
+4. Im GitHub-Repo unter **Settings → Environments** das Environment `npm` anlegen (optional mit Schutzregel,
+   z. B. nur Tags `v*`).
+
+Rückfall ohne Trusted Publishing: auf npmjs.com einen *Granular Access Token* mit Schreibrecht nur auf
+`@accountdesk/widget` erzeugen und im GitHub-Repo als Secret `NPM_TOKEN` (Environment `npm`) hinterlegen.
+
+## Sicherheit und unterstützte Versionen
+
+Sicherheitslücken bitte nach <https://www.accountdesk.de/sicherheit> melden, nicht als öffentliches Issue.
+Das Widget erhält Sicherheitsupdates, solange es angeboten wird, mindestens aber 5 Jahre ab Erscheinen einer
+Hauptversion; Sicherheitskorrekturen erscheinen in der aktuellen Hauptversion, ältere Hauptversionen erhalten
+noch 18 Monate Korrekturen. Details: [SECURITY.md](SECURITY.md).
+
+### Sicher einbinden
+
+- **Nur den Widget-Token verwenden**, nie einen API-Token der Entwickler-API. Der Widget-Token steht sichtbar
+  im Quelltext eurer Seite; er darf nur Tickets anlegen und Artikel vorschlagen, und accountdesk nimmt ihn nur
+  von den Domains an, die ihr beim Kontaktformular eingetragen habt. Tragt dort nur eure eigenen Domains ein.
+- **Version festlegen.** Beim Laden über ein npm-CDN eine genaue Version angeben (`@1.2.1` statt `@1`) und ein
+  `integrity`-Attribut (Subresource Integrity) setzen – oder die Datei selbst hosten (siehe oben).
+- **Content-Security-Policy** eurer Seite: `script-src` muss den Ort der Script-Datei erlauben, `connect-src`
+  die API (`https://my.accountdesk.de`). Das Widget legt seine Styles als `<style>` im Shadow DOM an – mit
+  einer strengen CSP braucht `style-src` dafür `'unsafe-inline'`.
+- **Daten**: Das Widget schickt nur, was Besucher:innen ins Formular eingeben (E-Mail, Name, Betreff,
+  Nachricht, Anhänge) sowie eure Vorbelegungen (`prefill-*`, `external-customer-nr`, `custom-fields`) per
+  HTTPS an accountdesk. Mit `suggest-articles` geht der eingegebene Text schon beim Tippen an die
+  Artikelsuche. Ein Bildschirmfoto entsteht nur auf Klick und nach der Freigabe im Browser. Das Widget setzt
+  keine Cookies und nutzt keinen lokalen Speicher. Weist in eurer Datenschutzerklärung darauf hin.
+- **Aktuell halten**: Neue Versionen stehen auf npm und unter
+  [Releases](https://github.com/accountdesk/widget/releases); wer `my.accountdesk.de/widget/…` einbindet,
+  bekommt Korrekturen automatisch.
+
+### Prüfungen und Herkunft
+
+Jeder Pull Request durchläuft Lint, Formatierung, Build, `npm audit`, Gitleaks (Geheimnisse), Semgrep und
+CodeQL (`.github/workflows/`). Ab der ersten Version aus dem Release-Workflow (nach 1.1.0) trägt jede Version
+auf npm eine Provenance-Angabe (`npm audit signatures`), und zu jedem Release hängt eine Stückliste im Format
+CycloneDX (`sbom.cdx.json`: Laufzeit – das Widget hat keine Abhängigkeiten; `sbom-build.cdx.json`:
+Build-Werkzeuge).
+
 ## Lizenz
 
 [MIT](LICENSE) — Verbesserungen, die für alle nützlich sind, nehmen wir gern
